@@ -1,0 +1,43 @@
+#!/bin/sh
+# choose how to screenshot with a bunch of options (bonus i only write maim once)
+spec='flags: h,help w,window,W S,screen s,select a,save save-only p,pick n,name e,edit; parameters: pick,p n,name opts;'
+eval $(echo "$spec" | clparser "$@")
+# if asked for help then sorry thats a feature i havent implemented in clparser yet
+[ $h ] && echo sorry not implemented git good && echo $spec && exit
+# set a name if not given one, or ask through dmenu
+# NOTE if you dont set a name and try to screenshot more than once a second it will overwrite the others that second, probably should have it check and incrememnt
+echo $w
+scrdir="$HOME/Pictures/screenshots"
+#[ -z "$n" ] && n="$scrdir/screenshot$(date +%+4Y%m%d-%H%M%S).png" || { [ "$n" = 1 ] && n="$scrdir/$(printf '' | dmenu -p "Name:")" || n="$scrdir/$n"; }
+[ "$n" = 1 ] && n="$(printf '' | dmenu -p "Name:")"
+[ -z "$n" ] && n="screenshot$(date +%+4Y%m%d-%H%M%S.%N).png"
+n="$scrdir/$n"
+# if gave opts then whatever i guess, this is just maim then with extra steps (why did i do this?)
+[ -n "$opts" ] || {
+    # if gave no options or pick then open dmenu (unless gave an option for pick, then use that)
+    [ "$#" = 0 ] || [ "$p" = 1 ] && pick="$(printf 'window\nscreen\nselect' | dmenu -p 'screenshot type:' -i )"
+    # if pick has an option set then choose what option that should be to be used later
+    [ "$#" = 0 ] || [ $p ] && [ "$pick" != 1 ]  && {
+        case "$pick" in
+            'window') w=1;;
+            'screen') S=1;;
+            'select') s=1;;
+            '') exit 1
+        esac
+        a=1     # always save if you used pick
+    }
+    # if w - choose window with xdotool like in maim example and be done, if S then fullscreen (defualt), if s then select
+    { [ $w ] && opts='-i $(xdotool getactivewindow)'; } || [ $S ] || { [ $s ] && opts='-s'; }
+    # if a then save with tee (if saveonly this is kinda dumb but works fine so)
+    [ $a ] || [ $save_only ] && opts="$opts | tee \"$n\""
+}
+# if not save only then also pipe to xclip
+[ $save_only ] || opts="$opts | xclip -selection clipboard -t image/png"
+# run maim with the options we set
+# NOTE im having an issue with it not screenshotting but that issue comes down to sxhkd not always grabbing my alt+shift so it doesnt tell this to save so i have it notify me since i usually want to save
+eval maim $opts
+[ $a ] || [ $save_only ] && { [ 'image/png' = "$(xdg-mime query filetype "$n")" ] || { notify-send "$(basename $0)" "oof $(basename $n) didnt save you dont have that screenshot"; [ -s "$n" ] || rm "$n"; exit; }; } || notify-send "maimpicker" "hopefully you didnt want to save that cause i didn't"
+# TODO make e a parameter to give it the editor to use so i can use something more paint like drawing or pinta or any of the others 
+# also maybe have it save $n and work in gimp as a copy or soemthing
+# NOTE this doesnt work if you save it as something different
+[ $e ] && ${IMAGE_EDITOR:-gimp -a} "$n" && xclip -selection clipboard -t image/png "$n"

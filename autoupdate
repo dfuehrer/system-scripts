@@ -1,0 +1,24 @@
+#!/bin/sh
+# the goal of this script is to start a program and have it automatically update itself when its config file is changed
+# it can do that using the s,sig option to send a signal when updated or just kill and restart
+# can specify the file or have it look in XDG_CONFIG_HOME
+# this is intended for things you just start and have 1 instance of running in the background like a keyboard shortcut manager
+#   becuase of this it will try to kill previous instances of this so this isnt a good way to autoupdate something youd have multiple instances running at once
+eval $(echo 'flags: r,restart; parameters: c,command f,file s,sig;' | clparser "$@")
+[ -z "$command" ] && { [ -z "$defaults" ] && { echo Must give a command > /dev/stderr; exit 1; } || command="$defaults"; }
+basecomm="${command%% *}"
+[ -z "$file" ] && { file="$(ls ${XDG_CONFIG_HOME:-$HOME/.config}/$basecomm 2> /dev/null)"; [ -z "$file" ] && { echo Must give a file > /dev/stderr; exit 1; } || file="${XDG_CONFIG_HOME:-$HOME/.config}/$basecomm/$file"; }
+cleanup () { kill 0; }
+trap cleanup EXIT
+# id actually like to do this with pkill but i dont know how to do that without killing this process
+#echo $$
+#pgrep -f "autoupdate $command" | grep -v $$
+kill $(pgrep -f "autoupdate $command" | grep -v $$)
+# I dont know why this would be necessary but this doesnt seem to die when i kill the autoupdates so
+#pkill -f "entr $HOME/.local/bin/scripts/restartprocess.sh $command"
+[ -n "$s" ] && sigoption="-s $s"
+[ $r ] && restart='-r' || restart=
+#eval "$command" &
+#restartprocess.sh "$command"
+# TODO this isnt starting things up or something
+echo "$file" | entr $restart "$HOME/.local/bin/scripts/restartprocess.sh" "$command" $sigoption

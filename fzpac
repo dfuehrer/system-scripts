@@ -1,0 +1,4 @@
+#!/bin/sh
+#pacman -Slq | fzf -q "$@" -m --preview 'pacman -Si {1}' | xargs -ro sudo pacman -S --needed
+# TODO this doesnt totally work because itll probably break if you input more than 1 thing but just dont do that
+pacman -Slq | fzf --query="$@" -m --preview 'pacman -Si {1}' | xargs -ro pacinstall

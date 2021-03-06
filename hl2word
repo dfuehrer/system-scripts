@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# TODO add in batch mode after i figure out how it works in highlight
+# batch - use batch mode in highlight and then figure out what it does and go from there, i dont really care
+# one file - this is what i want.  give a bunch of files, concatenate with 4 spaces or something between them, then do this stuff on that file
+#   NOTE this only makes sense if youre trying to combine the same file type, cant do c and python cause itll be confused
+
+# using my clparser to parse clargs, have options for lots of stuffs, some that dont exist (i still needa make hlep functionality for clparser where you can give it helps for the things and itll print them out (might just be easier to write one yourself but))
+eval $(echo 'flags: B,batch s,single,one-file no-line,n line,l i,interactive; parameters: O,format=docx o,out theme,style k,font;' | clparser "$@")
+# just copied these from the highlight --help, check to make sure the type asked for is something i know what to do
+highlightformats="html,xhtml,latex,tex,odt,rtf,ansi,xterm256,truecolor,bbcode,pango,svg"
+echo "$highlightformats,pdf,docx" | grep -Fv "$format" && { echo I don\'t know what to do with $format; exit; }
+# for these sections i could have a line to check for postformat and set format to odt just to reduce the redundant code
+# if pdf or docx then need to post process with libreoffice so use odt to import
+case "$format" in
+    pdf) postformat=$format && format=odt;;
+    docx) postformat=$format && format=odt;;
+esac
+# set var for using lined numbers or not
+[ $l ] || [ -z "$n" ] && l=-l
+# set var for the theme to use, TODO not working
+[ -n "$theme" ] && theme="--style=$theme"
+[ -n "$font" ] && font="--font=$font"
+# set var so i dont say file(s), its always right, (echo out what input files given)
+[ "$(echo "$defaults" | wc -w)" -gt 1 ] && filesplural=s
+# TODO prolly put this in a verbose thing
+echo using input file$filesplural: "$defaults"
+# TODO this logic has issues if you dont use file extensions
+# if no out gotta choose intelegently
+[ -z "$out" ] && { 
+    # if combining in one file use garbage program i threw together too fast commonname to get common name
+    # set onefilename based on it, newfile from that with format file extension
+    [ $one_file ] && onefilename="common_$(commonname $defaults)" && newfile="${onefilename%.*}.$format" || 
+    # if not one-file then set new file from input with file extension from format
+    newfile="${defaults%.*}.$format";  } || {
+        # if have out, then set newfile to out, format should be there, if one-file set from out with file extensions from input files (NOTE goes wrong if they have no extension)
+    newfile="${out%.*}.$format"; [ $one_file ] && onefilename="${out%.*}.${defaults##*.}"; }
+# if one-file then cat the files together with 4 lines between them in onefilename, otherwise set onefilename to input
+[ $one_file ] && { echo > "$onefilename" && for f in $defaults; do cat $f >> "$onefilename" && printf '\n\n\n\n' >> "$onefilename"; done; 
+# explain the temp file and output file from highlight
+echo making temp file: $onefilename then outputing file: $newfile; } || onefilename="$defaults"
+# actually use highlight to highlight file, output in newfile; if fail, exit
+# the options are the given format (default set to docx in clparser -> odt in case), lines if requested (yes by default), input file, and output file
+# TODO get rid of the highlight_datadir, its only here cause its being dumb (its supposed to be reading this var automatically
+highlight -O "$format" $l $theme $font $([ -n "$HIGHLIGHT_DATADIR" ] && echo "-D $HIGHLIGHT_DATADIR") -t 4 -i "$onefilename" -o "$newfile" || { ret=$?; echo its gone terribly wrong > /dev/stderr; exit $ret; }
+# if postformatting then convert with libreoffice, it saves the file automatically so guess what it should save
+[ -n "$postformat" ] && soffice --convert-to "$postformat" "$newfile" && echo "final file: ${newfile%.*}.$postformat (probably)"

@@ -1,0 +1,99 @@
+#!/bin/sh
+# TODO i need to figure out if theres a way to kill a file that takes too long to start doing something so that my later previews arent affected by how slow working with big files is
+#{ for i in $(seq 10); do sleep .5s && pgrep -a "$(basename $0)" && [ $(pgrep -c "$(basename $0)") -gt 2 ] && echo what && kill $$; done; kill $$; } &
+
+draw() {
+    ~/.config/lf/scripts/draw-img.sh "$@";
+    exit 1;    # exit with error so that it can trigger something to clear after
+}
+
+mkhash() {
+    printf '%s/.cache/lf/%s' "$HOME" \
+        "$(stat --printf '%n\0%i\0%f\0%s\0%w\0%y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)";
+}
+
+cache() {
+    [ -f "$1" ] && draw "$@";
+}
+
+
+file="$1"
+shift
+
+case "$(file -Lb --mime-type -- "$file")" in
+    image/*)
+        if [ -n "$FIFO_UEBERZUG" ]; then
+            orientation="$(identify -format '%[EXIF:Orientation]\n' -- "$file")"
+            if [ -n "$orientation" ] && [ "$orientation" != 1 ]; then
+                cache="$(mkhash "$file").jpg"
+                cache "$cache" "$@"
+                convert -- "$file" -auto-orient "$cache"
+                draw "$cache" "$@"
+            else
+                draw "$file" "$@"
+            fi
+        else
+            mediainfo "$file" && exit
+        fi
+        ;;
+    video/*)
+        if [ -n "$FIFO_UEBERZUG" ]; then
+            cache="$(mkhash "$file").jpg"
+            cache "$cache" "$@"
+            ffmpegthumbnailer -i "$file" -o "$cache" -s 0
+            draw "$cache" "$@"
+        else
+            mediainfo "$file" && exit
+        fi
+        ;;
+    # render pdf as an image by converting to ppm first if using ueberzug
+    application/pdf)
+        if [ -n "$FIFO_UEBERZUG" ]; then
+            cache="$(mkhash "$file").ppm"
+            cache "$cache" "$@"
+            pdftoppm -singlefile "$file" > "$cache"
+            draw "$cache" "$@"
+        else
+            pdftotext "$file" - && exit
+        fi
+        ;;
+    application/json) aeson-pretty < "$file" && exit;;
+    # a lot of things seem to be this as a general file format of binary
+    application/octet-stream)
+        case "$file" in
+            # this was weird with pdftotext made something weird so this tries to solve it
+            *.txt) ansifilter "$file" | bat --paging=never -f --style=numbers,changes --theme=code-dark && exit;;
+            *.mp3)
+                if [ -n "$FIFO_UEBERZUG" ]; then
+                    cache="$(mkhash "$file").jpg"
+                    cache "$cache" "$@"
+                    ffmpegthumbnailer -i "$file" -o "$cache" -s 0
+                    draw "$cache" "$@"
+                else
+                    mediainfo "$file" && exit
+                fi
+                ;;
+            # i cant do anyting with this since ueberzug doesnt know this format so i dunno, i dont want to convert to png or something cause thatll just be slow
+            *.ff) :;;
+            *.docx) pandoc -i "$file" -t markdown | glow -s dark - && exit;;
+        esac
+        ;;
+    # NOTE this is kinda slow but actually pretty good so well go with it
+    application/postscript) ps2ascii "$file" && exit;;
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document) pandoc -i "$file" -t markdown | glow -s dark - && exit;;
+    # this kinda works but i can never get terminal eqn to work right for some reason
+    text/troff) groffer --mode text "$file";;
+    application/csv) bat -fn "$file" && exit;;
+    text/*)
+        case "$file" in
+            *.md) glow -s dark "$file" && exit;;
+            #*.diff) diff-so-fancy < "$file"  && exit;;
+            *.diff) delta < "$file"  && exit;;
+            #*) bat --paging=never -f --style=numbers,changes --theme=code-dark "$file" && exit;;
+            *) bat-minimap "$file" "$(($1-$1/6-4))" "$2" && exit;;
+        esac
+        ;;
+esac
+
+file -zLb -- "$file" | fold -s -w "$1"
+exit 0

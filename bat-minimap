@@ -1,0 +1,20 @@
+#!/bin/sh
+# take in a file and a width and a height
+# using builting argv management for speed and since - options dont really make sense here
+# set the variables to something nice and make sure we have defulats
+[ $# -ge 1 ] && file="$1" && shift || { printf "Must give a file\nUsage:\t$0 file/path width height\n" && exit 1; }
+[ $# -ge 1 ] && width="$1" && shift || width=80
+[ $# -ge 1 ] && height="$1" && shift || height=80
+[ "$file" = '-' ] && echo ill add in taking from stdin later i guess && exit 2
+cleanup () {
+    rm -f "$tmpfile"
+}
+trap cleanup EXIT
+# get the basename of the file
+bn="${file##*/}"
+# generate a temp file name with the file extension of the basename
+tmpfile="$(mktemp -tu bat-minimap.XXXXXXXXXX.${bn##*.})"
+# use that name to make a fifo file (store in ram, its pretty legit)
+mkfifo "$tmpfile"
+bat --style numbers,changes --paging=never -fr ":$height" "$@" "$file" | visualbox "$width" "$height" > "$tmpfile" &
+code-minimap "$file" --horizontal-scale .5 | paste -d' ' "$tmpfile" -

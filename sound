@@ -1,0 +1,25 @@
+#!/bin/sh
+# check for pulseaudio, use ALSA if its not running
+[ -z "$(pgrep pulseaudio)" ] && {
+    case "$1" in
+        "--inc")    amixer sset Master ${2:-5}+;;
+        "--dec")    amixer sset Master ${2:-5}-;;
+        "--set")    amixer sset Master "$2";;
+        "--toggle") amixer sset Master toggle;;
+    esac
+    # TODO figure out how to get this info more directly
+    pb="$(amixer sget Master | grep Playback)"
+    sp="$(echo "$pb" | tr ' ' '\n' | grep % | tr -d '[%]')"
+    echo "$pb" | grep -q '\[off\]' && e=🔇 || { [ $sp -gt 66 ] && e=🔊 || { [ $sp -ge 33 ] && e=🔉 || e=🔈; }; };
+} || {
+    case "$1" in
+        "--inc")    pamixer -i ${2:-5};;
+        "--dec")    pamixer -d ${2:-5};;
+        "--set")    pamixer --set-volume "$2";;
+        "--toggle") pamixer -t;;
+    esac
+    sp="$(pamixer --get-volume)"
+    $(pamixer --get-mute) && e=🔇 || { [ $sp -gt 66 ] && e=🔊 || { [ $sp -ge 33 ] && e=🔉 || e=🔈; }; };
+}
+# 19144 is arbitrary (s=19 n=14 d=4)
+dunstify "$(echo "$e$(percentbar $sp)" )" -r 19144 -u LOW -t 1250

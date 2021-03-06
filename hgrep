@@ -1,0 +1,4 @@
+#!/bin/sh
+command=$1 && shift
+$command --help | grep --color=always "$@"
+

@@ -1,0 +1,6 @@
+#!/bin/sh
+restartprocess.sh nm-applet
+BLOCK_BUTTON=1 stalonetray.sh
+# TODO what i actaully want is for the stalonetray to be blocking and then when it finishes it kills nm-applet but i do want to use the stalonetray.sh so it integrates with the status bar but that script cant be blocking since it has to update the bar after it opens the tray so really i have to make it block outside which amounts to this
+while [ -n "$(pgrep stalonetray)" ]; do sleep 5; done
+killall nm-applet

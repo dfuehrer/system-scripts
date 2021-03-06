@@ -1,0 +1,4 @@
+#!/bin/sh
+
+#sxiv $(readlink -e $(ls -t ~/Pictures/screenshots/) )
+sxiv $(readlink -e $(find ~/Pictures/screenshots/ -mindepth 1 -printf '%p %T+\n' | sort -rk2 | cut -d' ' -f1) )

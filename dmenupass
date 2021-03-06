@@ -1,0 +1,3 @@
+#!/bin/sh
+#dmenu -c -bw 1 -P $( [ -n "$1" ] && echo "-p $1") <&- && echo
+dmenu -c -bw 1 -P -p "$1"

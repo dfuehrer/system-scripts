@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# as far as i know this should work fine but gtk-launch exists so maybe its better
+# actually never mind i dont love how it works maybe ill change it back
+#[ ${1##*.} = desktop ] && { $(sed -n 's/Exec=//p' "$@"); } || "$1"
+#[ ${1##*.} = desktop ] && { cd "$(dirname "$@")" && gtk-launch "$(basename $@)"; } || "$1"
+[ ${1##*.} = desktop ] && { gtk-launch "$(basename $@)"; } || "$1"

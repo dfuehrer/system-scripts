@@ -1,0 +1,6 @@
+#!/bin/sh
+trashdir=${XDG_DATA_HOME:-$HOME/.local/share}/Trash/rmt
+purfiles=$(ls -r $trashdir | fzf +s -m -i --query=$1 | awk -v 'RS=\\s' '{printf "%s%s ", "'"$trashdir/"'", $0}')
+[ -z "$purfiles" ] && exit
+echo $purfiles
+rm -Iv $purfiles

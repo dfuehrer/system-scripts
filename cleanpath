@@ -1,0 +1,4 @@
+#!/bin/sh
+for f in $@; do
+    cd $(dirname $f) && echo $(pwd)/$(basename $f)
+done

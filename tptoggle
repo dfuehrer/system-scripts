@@ -1,0 +1,7 @@
+#!/bin/sh
+# TODO make this more efficient, its actaully kinda slow, i just dont know how to do it any other way cause the only way i can seem to find the info to do this is through parsing human readable output which is gross
+# also i feel like awk should be great at this and yet i have no idea how to do anything with awk that isnt strict column based that i could do with cut or something weird
+dev="$(xinput list | sed -n 's/.*Touchpad.*id=\([0-9]\+\).*/\1/p')"
+[ "$1" = "on" ] && state=0 || { [ "$1" = "off" ] && state=1 ||
+state=$(xinput list-props "$dev" | sed -n 's/.*Device Enabled.*\([01]\)$/\1/p'); }
+[ "$state" -eq 0 ] && xinput enable "$dev" || xinput disable "$dev"

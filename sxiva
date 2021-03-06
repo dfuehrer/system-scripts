@@ -1,0 +1,21 @@
+#!/bin/sh
+##[ -z $1 ] && exit 1
+#[ -z "$1" ] && f=. || f="$1"
+#dir=$(dirname "$f")
+#base=$(basename "$f")
+#sxiv "$dir" -n $(ls -p "$dir" | sed '/\//d;/^'"$base"'$/q' | wc -l) &
+
+
+# TODO make it so i can pass flags to sxiv (prolly should add that feature into clparser)
+eval $(echo 'flags: t,T,time; parameters: f,F,file=.' | clparser "$@")
+[ -z "$f" ] && { [ -z "$defaults" ] && f=. || f="$defaults"; }
+[ -d "$f" ] && { setsid -f sxiv $f; exit; }
+# TODO this assumes there are no spaces in the files wihich is bad
+# TODO i hate using cat to do nothing cause its slow but i need to clean up for the other stuff so this is where im at
+[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='cut -d " " -f1'; } || { fstr='%f\n' && cleanup=cat; }
+dir=$(dirname "$f")
+base=$(basename "$f")
+files="$(find "$dir" -maxdepth 1 -type f -printf "$fstr" | sort $sortarg | eval $cleanup)"
+num="$(echo "$files" | sed '\|^'"$base"'$|q' | wc -l)"
+[ -z "$t" ] && files="$dir"
+sxiv $files -n "$num" &

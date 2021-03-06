@@ -1,0 +1,38 @@
+#!/bin/sh
+# TODO implement opening multiple files at once, thatd be usefull
+[ -z "$TERM" ] && { selector="dmenu -i" && term="setsid -f ${TERMINAL:-st} -e"; } || { selector="fzf -m -1 -i --query=$@"; term=exec; }
+class="$(printf 'script\nconfig\ndot\ngit' | $selector)"
+[ -z "$class" ] && exit
+
+# TODO consider making this function feature full or whatever and make it into a script cause it legit becomes a pretty ok file selector
+choosefile () {
+    dir="$1"
+    search="$2"
+    while [ -d "$dir" ]; do
+        files="$(ls -a "$dir" | grep "$search")"
+        # if the directory only has 1 thing choose that automatically (but dont if just used .. to get out)
+        [ "$d" != '..' ] && [ $(echo "$files" | wc -l) -eq 3 ] && dir="$dir/$(ls "$dir")" && continue
+        d="$(echo "$files" | $selector)"
+        [ -z "$d" ] && exit
+        [ "$d" = "." ] && break
+        dir="$dir/$d"
+    done
+    echo "$dir"
+}
+
+case $class in
+    script) choosefile "$HOME/.local/bin/scripts";;
+    config) choosefile "${XDG_CONFIG_HOME:-$HOME/.config}";;
+    dot)    choosefile "$HOME" "^\.";;
+    git)    choosefile "$HOME/gitstuffs";;
+esac
+
+#$( [ -z "$TERM" ] && echo "${TERMINAL:-st} -e" ) "$EDITOR" "$dir"
+$term "$EDITOR" "$dir"
+# dont love having to loop and search and stuff but this is a pretty ok way of doing it
+# wait till the editor is open and then tell it to adjust its window size cause its confused
+#while [ -z "$(pgrep -a "$EDITOR" | grep -F "$dir")" ]; do sleep .01s; done
+# for some reason i was doing the previous line but now that i set my editor to /usr/bin/nvim from just nvim to specify the version it stopped working and now this will search indefinitely
+# and thats a big deal to have it do an infinite while with only a .01s sleep, get 10 of these going and the computer has a lot of cpu usage just keeping track of all the interrupt garbage
+while [ -z "$(pgrep -af "^$EDITOR $dir")" ]; do sleep .01s; done
+pkill -SIGWINCH -f "$EDITOR $dir"

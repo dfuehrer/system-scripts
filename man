@@ -1,0 +1,30 @@
+#!/bin/bash
+# the point of this is to make a dmenu script that lets me select something to man
+# then i wanted the fancy colors from my bash function so i put them in here
+# but i still want it to be able to act like man
+# and i want to be able to have it search if it doesnt exist using fzf so now it does all that
+
+[ -n "$TERM" ] && selector="fzf -1 -m -i --tiebreak=begin --query=$@" || { selector="dmenu -i -l 15" && term="${TERMINAL:-st} -e"; }
+# use nice colors or whatever but then open in a terminal if not in one already and then exit if it worked (doesnt quite work cause alacritty returns success on exit even when the process doesnt (st does this properly))
+newman () { 
+    LESS_TERMCAP_md=$'\e[01;31m' \
+    LESS_TERMCAP_me=$'\e[0m' \
+    LESS_TERMCAP_se=$'\e[0m' \
+    LESS_TERMCAP_so=$'\e[01;44;33m' \
+    LESS_TERMCAP_ue=$'\e[0m' \
+    LESS_TERMCAP_us=$'\e[01;32m' \
+    $term /bin/man "$@" && exit
+}
+#m="$(echo "$@" | sed 's/[0..9]//g')"
+# using $* here cause $@ does magic to preserve "\ " vs " " in arguments by basically expanding out to exactly what it was given
+# but that means that i cant contain it easily in 1 string which i need to check if its empty
+checkman () { [ -n "$*" ] && /bin/man -w "$@" > /dev/null 2>&1 ; }
+#checkman "$@" && newman "$@"
+# dont check if it has a manpage just see if man likes it, if not do a search
+# i am checking if you do ask for something cause the keyboard shortcut will never ask for something but will open the terminal just to say that doesnt work and exit cause it isnt returning an error like man did
+[ -n "$*" ] && newman "$@"
+# used to pipe it into tr to replace new lines with spaces but i dont know what it did for me and i need it to not have a space at the end so i can select things not in the man -k cause somethimes after i install a package it doesnt get in the man -k immediately
+#mp=$(/bin/man -k '' | $selector | sed 's/\(.*\) (\(.*\)).*/\2 \1/' | tr '\n' ' ')
+mp=$(/bin/man -k '' | $selector | sed 's/\([^[:space:]]*\) (\([^)]*\)).*/\2 \1/')
+echo $mp
+[ -n "$mp" ] && checkman ${mp#* } && newman $mp

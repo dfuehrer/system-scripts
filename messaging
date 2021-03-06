@@ -1,0 +1,17 @@
+#!/bin/sh
+# TODO finch wont do anything without a terminal, add in option to make it a terminal app
+messagernesses='messages\nevolution\ndiscord\ncaprine\nsignal-desktop\nelement-desktop\npidgin\nfinch\ngroupme'
+mess="$(printf "$messagernesses" | dmenu -c -l 10)"
+# gotta loop through the output so that i can open multiple
+for m in $mess; do
+    which "$m" && setsid -f $m && continue
+    case "$m" in
+        #'messenger') setsid -f firefox --private-window "https://www.messenger.com" && continue ;;
+        ##'messenger but more risky') setsid -f firefox --kiosk --new-window "https://www.messenger.com" && continue ;;
+        #'messengerbutbetter') setsid -f firefox --ssb "https://www.messenger.com" && continue ;;
+        messenger) setsid desktop-open "${XDG_DATA_HOME:-$HOME/.local/share}/applications/messenger.desktop" && continue ;;
+        groupme)   setsid -f firefox --new-window "https://web.groupme.com/chats" && continue ;;
+        messages)  setsid -f desktop-open "$HOME/Desktop/brave-hpfldicfbfomlpcikngkocigghgafkph-Default.desktop" && continue ;;
+        *) echo "rip guess i dont know what to do with $mess" > /dev/stderr;;
+    esac
+done

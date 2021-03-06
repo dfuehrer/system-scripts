@@ -1,0 +1,21 @@
+#!/bin/sh
+
+imlazybatteryfunction () {
+    batStat=$(cat /sys/class/power_supply/BAT*/status); 
+    # added 10 so itll still say full at 90%
+    batInd=$(( ($(cat /sys/class/power_supply/BAT*/capacity)+5)/25*3+1 )); 
+    case $batStat in 
+        Full|Unknown) batSym=;; 
+        Charging) batSym=;; 
+        Discharging) batSym=$(echo '' | cut -c $batInd-$(( $batInd+2 )));; 
+    esac; 
+    # scale=4:  4 sig figs, 4.3g: 4 total characters, 3 sigfigs, will print trailing 0s
+    echo "scale=4; $(head /sys/class/power_supply/BAT*/charge_now) / $(head /sys/class/power_supply/BAT*/charge_full) * 100" | bc | xargs printf '%s  %#4.3g%%' $batSym
+}
+case "$BLOCK_BUTTON" in
+    1) $TERMINAL -e sudo powertop ;;
+    2) "$TERMINAL" -e "$EDITOR" "$0" ;;
+    4) backlight --inc;;
+    5) backlight --dec;;
+    '') imlazybatteryfunction;;
+esac

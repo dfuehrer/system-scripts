@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# TODO use real temp file/dir stuff cuase what if i want this to be able to have multiple terminals at once
+tmpdir=$(mktemp -d /tmp/ic.XXXXXXXXXX)
+base='#include <stdio.h>
+/* more includes and defines */
+int main(int argc, char ** argv){
+    /* do stuffs */
+    return 0;
+}'
+CC=tcc
+echo "$base" > $tmpdir/ic.c
+num=0
+blocklevel=0
+# remove the tmp dir we made for this and kill anything thats running
+cleanup () {
+    rm -rf "$tmpdir"
+    kill -s SIGCHLD 0
+    exit
+}
+# just kill whatevers running and reset the line
+term () {
+    kill -s SIGCHLD 0
+    printf "\r"
+}
+# on exit we want to cleanup everything
+trap cleanup EXIT
+# with ^C we want to kill the child but not this script
+trap term SIGINT
+# we want to kill any child without killing ourselves
+trap SIGCHLD
+while true; do
+    # what this really needs at some point is a way to automatically print out the value of something so i can jsut type it in with an exclamation point or soemting (to indicate to run it now) and itll just run it without printing the rest of everything and give me the output of that one thing
+    #   obviously the problem with that is that i have to figure out a way of removing all print statements for just 1 run and i need to write a dynamic print function which is jsut a stupid pain that i really dont know how to do other than brute forcing base datatypes like int, str, etc
+    #   couple ways to do that but i could print out some key thing so that before it it discards all output untill the indicator then it prints the next thing (could do that in awk or something else)
+    # TODO somehow implement a history
+    # TODO maybe make it so that if i just write a variable that has been previously defined in my script it will print it out with some auto printing function that i figure out how to write
+    # TODO itd be super cool if we could get syntax highlighting in here but i bet thatd actually be impossible
+    prompt="[$num]: "
+    [ $blocklevel -gt 0 ] && prompt="$(printf '%*s' ${#prompt} '...: ')"
+    indents="$(printf '%*s' $(($blocklevel*4)) '')"
+    read -re -p "$prompt" -i "$indents" input || exit
+
+    blocklevel=$(( $blocklevel + $(echo "$input" | grep -c '{') - $(echo "$input" | grep -c '}') ))
+    # if got input then increment, otherwise go to next iter
+    [ -z "$input" ] && continue || { [ $blocklevel -eq 0 ] && num=$((num+1)); }
+    #input="$(echo "$input" | sed '$q;s/$/\\\\n/g' | tr -d '\n')"
+    # replace the escapes so they get put in as intended
+    input="$(echo "$input" | sed 's/\\\([abcefnrtv0xuU]\)/\\\\\1/g')"
+    #echo "$input"
+    case "$input" in
+        gdb|debug) { cc -g $tmpdir/ic.c -o $tmpdir/ic && gdb $tmpdir/ic; false; };;
+        run) { $CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic; false; };;
+        # r for color, X for not clearing screen, E for exiting at EOF
+        show) { highlight -O truecolor -F user -lt 4 --style=code-dark $([ -n "$HIGHLIGHT_DATADIR" ] && echo -D "$HIGHLIGHT_DATADIR") $tmpdir/ic.c | less -rXE; false; };;
+        #show) { bat -n --theme OneHalfDark --tabs 4 $tmpdir/ic.c; false; };;
+        # yes this is stupid to run a highlighter and strip its colors and then highlight with bat
+        #show) { highlight -O ansi -F user -t 4 $tmpdir/ic.c | ansifilter -T | bat --theme=code-dark -nl c; false; };;
+        clear) { echo "$base" > $tmpdir/ic.c && clear && num=0; false; };;
+        help*) { man "${input#* }"; false; };;
+        # TODO figure out how to do multi line deletion this way
+        # TODO make it so you can say del [number] and it will delete the num that is shown when you typed it
+        #del*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(highlight  -O ansi -lt 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
+        del*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(bat --theme OneHalfDark -nf --tabs 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
+        # TODO have an edit option that can take a line to edit and put it in my line so i can just edit it there
+        #   TODO then also do the thing i want with del where i can specify the number i wrote it as (this will be difficult too with multi line [number]s)
+        edit) { ${EDITOR:-vim} $tmpdir/ic.c; false; };;
+        exit) exit;;
+    esac &&
+        { [ -n "$(cat $tmpdir/ic.c)" ] &&
+            cp $tmpdir/ic.c $tmpdir/ic-pre.c
+            { [ '#' = $(echo "$input" | cut -c 1) ] && 
+                comment='more includes and defines' || 
+                { comment='do stuffs' && input="$(printf "\\\\\\t%s" "$input")"; }
+            } && 
+                sed '/\/\* '"$comment"' \*\//i '"$input"'' $tmpdir/ic-pre.c > $tmpdir/ic.c; }
+done

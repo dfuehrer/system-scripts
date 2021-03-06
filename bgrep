@@ -1,0 +1,3 @@
+#!/bin/sh
+# TODO this could just be an alias
+ls --color=always $(readlink -e $(printenv PATH | tr ':' '\n') | sort | uniq) | grep --color=auto $@
