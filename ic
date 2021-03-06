@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # TODO use real temp file/dir stuff cuase what if i want this to be able to have multiple terminals at once
 tmpdir=$(mktemp -d /tmp/ic.XXXXXXXXXX)
-base='#include <stdio.h>
+base='#!/usr/bin/tcc -run
+#include <stdio.h>
 /* more includes and defines */
 int main(int argc, char ** argv){
     /* do stuffs */
@@ -9,6 +10,8 @@ int main(int argc, char ** argv){
 }'
 CC=tcc
 echo "$base" > $tmpdir/ic.c
+# decide the run command based on if you have tcc
+which tcc > /dev/null 2>&1 && chmod u+x $tmpdir/ic.c && run="$tmpdir/ic.c" || run="$CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic"
 num=0
 blocklevel=0
 # remove the tmp dir we made for this and kill anything thats running
@@ -49,7 +52,8 @@ while true; do
     #echo "$input"
     case "$input" in
         gdb|debug) { cc -g $tmpdir/ic.c -o $tmpdir/ic && gdb $tmpdir/ic; false; };;
-        run) { $CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic; false; };;
+        #run) { $CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic; false; };;
+        run) { $run; false; };;
         # r for color, X for not clearing screen, E for exiting at EOF
         show) { highlight -O truecolor -F user -lt 4 --style=code-dark $([ -n "$HIGHLIGHT_DATADIR" ] && echo -D "$HIGHLIGHT_DATADIR") $tmpdir/ic.c | less -rXE; false; };;
         #show) { bat -n --theme OneHalfDark --tabs 4 $tmpdir/ic.c; false; };;

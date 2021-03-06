@@ -2,12 +2,13 @@
 - these are just the scripts I use on my system
 - most of them I wrote from scratch just to do something so they're kinda gross in a lot of spots
 - there might be other issues for why these don't work for you that I don't have here
+- generally my scripts are POSIX compliant shell scripts but ones that interact with the user often are bash scripts because of the better functionality in that regard (readline is a much better ux than nothing, ansi colors aren't posix I guess)
 
 ## dependencies
 - some depend on my configs that I don't have up yet since I haven't decided how I wanna do that
     - specifically I'm on Arch, so there may be differences with your system
     - I use dwm with a fork of dwm blocks (specifically mine that I forked from Luke's thats forked from someone else's but I fixed a bug in my version, maybe I should update it and host it) that lets you use the mouse with the bar, so BLOCK_BUTTON refers to that
-- many depend on C programs I wrote for things (mostly [clparser](https://github.com/dfuehrer/clparser) but also [visualbox](chrome://crash/) and [percentbar](chrome://kill/) and [cpupercent](chrome://hang/)
+- many depend on C programs I wrote for things (mostly [clparser](https://github.com/dfuehrer/clparser) but also [visualbox](chrome://crash/) and [percentbar](chrome://kill/) and [cpupercent](chrome://hang/))
 - I think I might skip a bunch specifically in my lf-previewer since it has a bunch of things for visualizing stuff that I don't care about
 - real dependencies (I might be forgetting many) in various scripts:
     - normal unix utilities not listed here
