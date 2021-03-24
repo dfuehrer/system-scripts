@@ -6,7 +6,7 @@
 # do things if from dwmblocks
 case "$BLOCK_BUTTON" in
     1) pavucontrol ;;
-    2) "$TERMINAL" -e "$EDITOR" "$0" ;;
+    2) edit "$0" ;;
     3) todo="--toggle" && notify=true;;
     4) todo="--inc" && notify=true;;
     5) todo="--dec" && notify=true;;

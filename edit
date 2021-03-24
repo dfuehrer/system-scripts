@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# this script will open a file correctly in a terminal text editor
+#   either from the terminal in the editor directly
+#   or from a launcher by running the editor in the terminal, waiting for the editor to open, and then giving the editor the WINCH signal to resize it so that its correct
+[ -z "$TERM" ] && { term="setsid -f ${TERMINAL:-st} -e"; } || { term=exec; }
+
+$term "$EDITOR" "$@"
+# dont love having to loop and search and stuff but this is a pretty ok way of doing it
+# wait till the editor is open and then tell it to adjust its window size cause its confused
+#while [ -z "$(pgrep -a "$EDITOR" | grep -F "$dir")" ]; do sleep .01s; done
+# for some reason i was doing the previous line but now that i set my editor to /usr/bin/nvim from just nvim to specify the version it stopped working and now this will search indefinitely
+# and thats a big deal to have it do an infinite while with only a .01s sleep, get 10 of these going and the computer has a lot of cpu usage just keeping track of all the interrupt garbage
+#   not that im speaking from personal experience or anything
+while [ -z "$(pgrep -af "^[^ ]*$EDITOR $@")" ]; do sleep .02s; done
+pkill -SIGWINCH -f "$EDITOR $@"

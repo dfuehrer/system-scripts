@@ -1,6 +1,7 @@
 #!/bin/sh
 # TODO implement opening multiple files at once, thatd be usefull
-[ -z "$TERM" ] && { selector="dmenu -i" && term="setsid -f ${TERMINAL:-st} -e"; } || { selector="fzf -m -1 -i --query=$@"; term=exec; }
+#[ -z "$TERM" ] && { selector="dmenu -i" && term="setsid -f ${TERMINAL:-st} -e"; } || { selector="fzf -m -1 -i --query=$@"; term=exec; }
+[ -z "$TERM" ] && selector="dmenu -i" || selector="fzf -m -1 -i --query=$@"
 class="$(printf 'script\nconfig\ndot\ngit' | $selector)"
 [ -z "$class" ] && exit
 
@@ -27,12 +28,14 @@ case $class in
     git)    choosefile "$HOME/gitstuffs";;
 esac
 
-#$( [ -z "$TERM" ] && echo "${TERMINAL:-st} -e" ) "$EDITOR" "$dir"
-$term "$EDITOR" "$dir"
-# dont love having to loop and search and stuff but this is a pretty ok way of doing it
-# wait till the editor is open and then tell it to adjust its window size cause its confused
-#while [ -z "$(pgrep -a "$EDITOR" | grep -F "$dir")" ]; do sleep .01s; done
-# for some reason i was doing the previous line but now that i set my editor to /usr/bin/nvim from just nvim to specify the version it stopped working and now this will search indefinitely
-# and thats a big deal to have it do an infinite while with only a .01s sleep, get 10 of these going and the computer has a lot of cpu usage just keeping track of all the interrupt garbage
-while [ -z "$(pgrep -af "^$EDITOR $dir")" ]; do sleep .01s; done
-pkill -SIGWINCH -f "$EDITOR $dir"
+##$( [ -z "$TERM" ] && echo "${TERMINAL:-st} -e" ) "$EDITOR" "$dir"
+#$term "$EDITOR" "$dir"
+## dont love having to loop and search and stuff but this is a pretty ok way of doing it
+## wait till the editor is open and then tell it to adjust its window size cause its confused
+##while [ -z "$(pgrep -a "$EDITOR" | grep -F "$dir")" ]; do sleep .01s; done
+## for some reason i was doing the previous line but now that i set my editor to /usr/bin/nvim from just nvim to specify the version it stopped working and now this will search indefinitely
+## and thats a big deal to have it do an infinite while with only a .01s sleep, get 10 of these going and the computer has a lot of cpu usage just keeping track of all the interrupt garbage
+#while [ -z "$(pgrep -af "^[^ ]*$EDITOR $dir")" ]; do sleep .02s; done
+#pkill -SIGWINCH -f "$EDITOR $dir"
+
+edit "$dir"

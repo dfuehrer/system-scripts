@@ -14,7 +14,7 @@ imlazybatteryfunction () {
 }
 case "$BLOCK_BUTTON" in
     1) $TERMINAL -e sudo powertop ;;
-    2) "$TERMINAL" -e "$EDITOR" "$0" ;;
+    2) edit "$0" ;;
     4) backlight --inc;;
     5) backlight --dec;;
     '') imlazybatteryfunction;;
