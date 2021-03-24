@@ -7,4 +7,4 @@ esac
 blp="$(xbacklight -get)"
 #dunstify "$(echo -n 💡$(percentbar.sh $blp) )" -r 212 -u LOW -t 1250
 # 212 is arbitrary (b=2 l=12)
-dunstify "$(echo "💡$(percentbar $blp)" )" -r 212 -u LOW -t 1250
+dunstify "$(echo "💡$(percentbar 15 $blp)" )" -r 212 -u LOW -t 1250

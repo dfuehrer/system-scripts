@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# TODO use real temp file/dir stuff cuase what if i want this to be able to have multiple terminals at once
 tmpdir=$(mktemp -d /tmp/ic.XXXXXXXXXX)
-base='#!/usr/bin/tcc -run
-#include <stdio.h>
+# i just learned that tcc has this "c script mode" where it can just run a c file by compiling it and running it
+# which is exactly what i want so its cool that it exists and i didnt even know about it
+# so putting this shebang in the c file lets you run it like that (obviously you need tcc first but)
+# but actually i just got rid of it becuase it makes the C invalid and its unnecessary
+base='#include <stdio.h>
 /* more includes and defines */
 int main(int argc, char ** argv){
     /* do stuffs */
     return 0;
 }'
-CC=tcc
 echo "$base" > $tmpdir/ic.c
 # decide the run command based on if you have tcc
-which tcc > /dev/null 2>&1 && chmod u+x $tmpdir/ic.c && run="$tmpdir/ic.c" || run="$CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic"
+which tcc > /dev/null 2>&1 && CC=tcc && run="tcc -run $tmpdir/ic.c" || { CC=cc; run="$CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic"; }
 num=0
 blocklevel=0
 # remove the tmp dir we made for this and kill anything thats running
@@ -35,15 +36,25 @@ while true; do
     # what this really needs at some point is a way to automatically print out the value of something so i can jsut type it in with an exclamation point or soemting (to indicate to run it now) and itll just run it without printing the rest of everything and give me the output of that one thing
     #   obviously the problem with that is that i have to figure out a way of removing all print statements for just 1 run and i need to write a dynamic print function which is jsut a stupid pain that i really dont know how to do other than brute forcing base datatypes like int, str, etc
     #   couple ways to do that but i could print out some key thing so that before it it discards all output untill the indicator then it prints the next thing (could do that in awk or something else)
+    #   if you really want a powerful interface for looking at values and stuff, gdb has this feature and it is awesome and i cant do anything about that
     # TODO somehow implement a history
     # TODO maybe make it so that if i just write a variable that has been previously defined in my script it will print it out with some auto printing function that i figure out how to write
+    #   im really running up against a limitation here of trying to have C used like an interpreted language where i can just have it run 1 line at a time when i give it
+    #   casue itd really be nice to know what has been saved and then work off of that but that just isnt feasible
+    #   or maybe i do soemthing terrible where i end the program by writing the datas in ram to a file so something can load it and then operate on it from that point without needing to recalc
+    #   but then ill wanna have it in ram so i dont have to do a lotta io on your drive
+    #   and then maybe i learn how a daemon works and just have small programs interact with a daemon to get the data it needs for the first time and then do stuff
+    #   but ultimately this is all dumb cause C is fast and what kind of idiot would use this as a programming environment for something complicated
     # TODO itd be super cool if we could get syntax highlighting in here but i bet thatd actually be impossible
+    #   at least without actually writing this program from scratch
+    #   which might be a better idea to actually write a c program to use readline and history and stuff to do all of this and then we could use a syntax highlighting library and stuff
+    # TODO make a way to be able to add functions
     prompt="[$num]: "
     [ $blocklevel -gt 0 ] && prompt="$(printf '%*s' ${#prompt} '...: ')"
     indents="$(printf '%*s' $(($blocklevel*4)) '')"
     read -re -p "$prompt" -i "$indents" input || exit
 
-    blocklevel=$(( $blocklevel + $(echo "$input" | grep -c '{') - $(echo "$input" | grep -c '}') ))
+    blocklevel=$(( $blocklevel + $(echo "$input" | grep -o '{' | wc -l) - $(echo "$input" | grep -o '}' | wc -l) ))
     # if got input then increment, otherwise go to next iter
     [ -z "$input" ] && continue || { [ $blocklevel -eq 0 ] && num=$((num+1)); }
     #input="$(echo "$input" | sed '$q;s/$/\\\\n/g' | tr -d '\n')"
@@ -60,14 +71,14 @@ while true; do
         # yes this is stupid to run a highlighter and strip its colors and then highlight with bat
         #show) { highlight -O ansi -F user -t 4 $tmpdir/ic.c | ansifilter -T | bat --theme=code-dark -nl c; false; };;
         clear) { echo "$base" > $tmpdir/ic.c && clear && num=0; false; };;
-        help*) { man "${input#* }"; false; };;
+        help*|man*) { man ${input#* }; false; };;
         # TODO figure out how to do multi line deletion this way
         # TODO make it so you can say del [number] and it will delete the num that is shown when you typed it
         #del*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(highlight  -O ansi -lt 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
-        del*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(bat --theme OneHalfDark -nf --tabs 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
+        del*|rm*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(bat --theme OneHalfDark -nf --tabs 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
         # TODO have an edit option that can take a line to edit and put it in my line so i can just edit it there
         #   TODO then also do the thing i want with del where i can specify the number i wrote it as (this will be difficult too with multi line [number]s)
-        edit) { ${EDITOR:-vim} $tmpdir/ic.c; false; };;
+        e|edit) { ${EDITOR:-vim} $tmpdir/ic.c; false; };;
         exit) exit;;
     esac &&
         { [ -n "$(cat $tmpdir/ic.c)" ] &&

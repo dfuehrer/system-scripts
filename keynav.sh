@@ -1,2 +1,2 @@
 #!/bin/sh
-autoupdate keynav -rs SIGUSR1
+autoupdate keynav -s SIGUSR1

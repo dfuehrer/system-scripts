@@ -41,6 +41,8 @@
         - general compression script, there are tons
     - encrypt
         - use gpg to encrypt a file and then shred it all in 1 step
+    - screensaver setter
+        - just for the x dkms screensaver things settings for when itll go black and stuff to replace my dependance on the silly joke of a script that is mmss
     - fix issues with autoupdate not starting things?
     - get pacinstall working
     - update this readme to be more specific about things

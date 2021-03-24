@@ -10,7 +10,7 @@ resdir=$(basename $resfile | sed 's/.*_//; s|%|/|g; s|-.*||')
 # TODO make it so i can pick the files to restore with fzf rather than just doing all
 # the quiet is for unzip, tar is quiet and doesnt have q, also we print everything out above so maybe just dont do that for quiet
 # TODO i have a small minor problem that my oldest trash is zip and then i switched to bz2 but whatever (itd be nice if they said their filetype to make that clear but whatever)
-#[ $q ] && quiet='-q'
+[ $q ] || quiet='-v'
 #unzip -X $quiet $resfile -d $resdir
 #tar -xjf $resfile -C $resdir
-tar -I lbzip2 -vxf $resfile -C $resdir
+tar -I lbzip2 $quiet -xf $resfile -C $resdir

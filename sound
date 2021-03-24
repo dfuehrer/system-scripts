@@ -1,10 +1,23 @@
 #!/bin/sh
 # check for pulseaudio, use ALSA if its not running
+[ $# -ge 1 ] && todo="$1" && notify=true && shift || notify=false
+[ $# -ge 1 ] && amount="$1" && shift
+
+# do things if from dwmblocks
+case "$BLOCK_BUTTON" in
+    1) pavucontrol ;;
+    2) "$TERMINAL" -e "$EDITOR" "$0" ;;
+    3) todo="--toggle" && notify=true;;
+    4) todo="--inc" && notify=true;;
+    5) todo="--dec" && notify=true;;
+esac
+
+
 [ -z "$(pgrep pulseaudio)" ] && {
-    case "$1" in
-        "--inc")    amixer sset Master ${2:-5}+;;
-        "--dec")    amixer sset Master ${2:-5}-;;
-        "--set")    amixer sset Master "$2";;
+    case "$todo" in
+        "--inc")    amixer sset Master ${amount:-5}+;;
+        "--dec")    amixer sset Master ${amount:-5}-;;
+        "--set")    amixer sset Master "$amount";;
         "--toggle") amixer sset Master toggle;;
     esac
     # TODO figure out how to get this info more directly
@@ -12,14 +25,24 @@
     sp="$(echo "$pb" | tr ' ' '\n' | grep % | tr -d '[%]')"
     echo "$pb" | grep -q '\[off\]' && e=🔇 || { [ $sp -gt 66 ] && e=🔊 || { [ $sp -ge 33 ] && e=🔉 || e=🔈; }; };
 } || {
-    case "$1" in
-        "--inc")    pamixer -i ${2:-5};;
-        "--dec")    pamixer -d ${2:-5};;
-        "--set")    pamixer --set-volume "$2";;
+    case "$todo" in
+        "--inc")    pamixer -i ${amount:-5};;
+        "--dec")    pamixer -d ${amount:-5};;
+        "--set")    pamixer --set-volume "$amount";;
         "--toggle") pamixer -t;;
     esac
     sp="$(pamixer --get-volume)"
     $(pamixer --get-mute) && e=🔇 || { [ $sp -gt 66 ] && e=🔊 || { [ $sp -ge 33 ] && e=🔉 || e=🔈; }; };
 }
+
+# i might actually want this higher but this matches my notification
+sleep_amount='1.25s'
+# TODO make this less gross
+sleep_pids="$(pgrep -f "sleep $sleep_amount" | tr '\n' ' ')"
+#$output && ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }"  2> /dev/null | tail -1)" 2> /dev/null | grep -q "${0##*/}" && echo "$e"
+$notify || { ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }"  2> /dev/null | tail -1)" 2> /dev/null | grep -q "${0##*/}" && echo "$e"; }
+
 # 19144 is arbitrary (s=19 n=14 d=4)
-dunstify "$(echo "$e$(percentbar $sp)" )" -r 19144 -u LOW -t 1250
+# only notify if given arg
+$notify && dunstify "$(echo "$e$(percentbar 15 $sp)" )" -r 19144 -u LOW -t 1250
+$notify && sleep "$sleep_amount" && pkill -SIGRTMIN+17 dwmblocks &

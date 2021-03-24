@@ -80,6 +80,7 @@ case "$(file -Lb --mime-type -- "$file")" in
         ;;
     # NOTE this is kinda slow but actually pretty good so well go with it
     application/postscript) ps2ascii "$file" && exit;;
+    # this is kinda dumb but kinda funny, convert word docs to markdown to display with glow, kinda works (probably converting to pdf to get an image makes more sense but that would be super slow)
     application/vnd.openxmlformats-officedocument.wordprocessingml.document) pandoc -i "$file" -t markdown | glow -s dark - && exit;;
     # this kinda works but i can never get terminal eqn to work right for some reason
     text/troff) groffer --mode text "$file";;
@@ -89,6 +90,7 @@ case "$(file -Lb --mime-type -- "$file")" in
             *.md) glow -s dark "$file" && exit;;
             #*.diff) diff-so-fancy < "$file"  && exit;;
             *.diff) delta < "$file"  && exit;;
+            *.ino) bat-minimap "$file" "$(($1-$1/6-4))" "$2" -l c++ && exit;;
             #*) bat --paging=never -f --style=numbers,changes --theme=code-dark "$file" && exit;;
             *) bat-minimap "$file" "$(($1-$1/6-4))" "$2" && exit;;
         esac
