@@ -27,12 +27,13 @@ n="$scrdir/$n"
         a=1     # always save if you used pick
     }
     # if w - choose window with xdotool like in maim example and be done, if S then fullscreen (defualt), if s then select
-    { [ $w ] && opts='-i $(xdotool getactivewindow)'; } || [ $S ] || { [ $s ] && opts='-s'; }
+    { [ $w ] && opts='-i $(xdotool getactivewindow)'; } || [ $S ] || { [ $s ] && opts='-ulsc 0.4,0.3,0.5,0.1 -n'; }
     # if a then save with tee (if saveonly this is kinda dumb but works fine so)
     [ $a ] || [ $save_only ] && opts="$opts | tee \"$n\""
 }
 # if not save only then also pipe to xclip
-[ $save_only ] || opts="$opts | xclip -selection clipboard -t image/png"
+# killing prev xclip since were going to start a new xclip for our copied screenshot
+[ $save_only ] || { pkill -f 'xclip .* -t image'; opts="$opts | xclip -selection clipboard -t image/png"; }
 # run maim with the options we set
 # NOTE im having an issue with it not screenshotting but that issue comes down to sxhkd not always grabbing my alt+shift so it doesnt tell this to save so i have it notify me since i usually want to save
 eval maim $opts

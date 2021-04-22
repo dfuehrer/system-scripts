@@ -5,7 +5,7 @@ imlazybatteryfunction () {
     # added 10 so itll still say full at 90%
     batInd=$(( ($(cat /sys/class/power_supply/BAT*/capacity)+5)/25*3+1 )); 
     case $batStat in 
-        Full|Unknown) batSym=;; 
+        Full|Unknown|"Not charging") batSym=;;
         Charging) batSym=;; 
         Discharging) batSym=$(echo '' | cut -c $batInd-$(( $batInd+2 )));; 
     esac; 

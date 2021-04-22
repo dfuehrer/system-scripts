@@ -9,6 +9,10 @@ data="$(cat "$file")"
 labels="$(printf "%s\n" "$data" | sed -n 's/\.EQ\s\+\((.*)\)\s*/\1/p')"
 # if there was nothing to label just spit the data out and quit (otherwise it actually crashes)
 [ -z "$labels" ] && printf "%s\n" "$data" && exit
+# cleanup when exiting
+cleanup () { rm -f "$tmpfile"; kill -s CHLD 0; exit; }
+trap cleanup EXIT
+trap '' CHLD
 # make a temp file for the numbers since i need to have at least 1 file for stuff
 tmpfile="$(mktemp -u)"
 # fifo file means im not using io on the filesystem for no reason
@@ -19,6 +23,5 @@ echo "$labels" | wc -l | xargs seq | sed 's/^/(/' > "$tmpfile" &
 # paste them together on the same line with / between
 # then use sed to add the rest of the sed replacement command for the end
 rep="$(echo "$labels" | paste -d '/' - "$tmpfile" | sed 's/^/s\//;s/$/)\/\;/')"
-rm "$tmpfile"
 # replace the labels with the numbers to stdout
 printf "%s\n" "$data" | sed "$rep"

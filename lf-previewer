@@ -91,6 +91,8 @@ case "$(file -Lb --mime-type -- "$file")" in
             #*.diff) diff-so-fancy < "$file"  && exit;;
             *.diff) delta < "$file"  && exit;;
             *.ino) bat-minimap "$file" "$(($1-$1/6-4))" "$2" -l c++ && exit;;
+            # TODO figure out how to not do this to objective-c files
+            *.m) bat-minimap "$file" "$(($1-$1/6-4))" "$2" -l matlab && exit;;
             #*) bat --paging=never -f --style=numbers,changes --theme=code-dark "$file" && exit;;
             *) bat-minimap "$file" "$(($1-$1/6-4))" "$2" && exit;;
         esac
