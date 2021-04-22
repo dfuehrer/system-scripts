@@ -1,18 +1,18 @@
 #!/bin/sh
-# check for pulseaudio, use ALSA if its not running
 [ $# -ge 1 ] && todo="$1" && notify=true && shift || notify=false
 [ $# -ge 1 ] && amount="$1" && shift
 
 # do things if from dwmblocks
 case "$BLOCK_BUTTON" in
-    1) pavucontrol ;;
+    #1) pavucontrol ;;
+    1) pulsemixer ;;
     2) edit "$0" ;;
     3) todo="--toggle" && notify=true;;
     4) todo="--inc" && notify=true;;
     5) todo="--dec" && notify=true;;
 esac
 
-
+# check for pulseaudio, use ALSA if its not running
 [ -z "$(pgrep pulseaudio)" ] && {
     case "$todo" in
         "--inc")    amixer sset Master ${amount:-5}+;;
@@ -36,11 +36,15 @@ esac
 }
 
 # i might actually want this higher but this matches my notification
-sleep_amount='1.25s'
-# TODO make this less gross
+sleep_amount='2.5s'
+# TODO make this less gross, clean this up
 sleep_pids="$(pgrep -f "sleep $sleep_amount" | tr '\n' ' ')"
+#echo sleep: "'${sleep_pids%% }'"
+#ppid="$(ps -o ppid -q "${sleep_pids%% }" | tail -1 | tr -d '[[:space:]]')"
+#echo ppid: "'$ppid'"
 #$output && ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }"  2> /dev/null | tail -1)" 2> /dev/null | grep -q "${0##*/}" && echo "$e"
-$notify || { ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }"  2> /dev/null | tail -1)" 2> /dev/null | grep -q "${0##*/}" && echo "$e"; }
+$notify || { ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }"  2> /dev/null | tail -1 | tr -d '[[:space:]]')" 2> /dev/null | grep -q "${0##*/}" && echo "$e"; }
+#$notify || { ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }" | tail -1 | tr -d '[[:space:]]')" | grep -q "${0##*/}" && echo "$e"; }
 
 # 19144 is arbitrary (s=19 n=14 d=4)
 # only notify if given arg
