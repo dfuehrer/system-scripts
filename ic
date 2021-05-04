@@ -4,7 +4,16 @@ tmpdir=$(mktemp -d /tmp/ic.XXXXXXXXXX)
 # which is exactly what i want so its cool that it exists and i didnt even know about it
 # so putting this shebang in the c file lets you run it like that (obviously you need tcc first but)
 # but actually i just got rid of it becuase it makes the C invalid and its unnecessary
-base='#include <stdio.h>
+
+# this makes a file to make a printing function available so i can use a general print for this interface
+# TODO make more of these functions to use for this
+echo '#include <stdio.h>
+void printi(int a){ printf("%d\n", a); }
+void prints(char * s){ puts(s); }
+void printc(char c){ printf("%d\n", c); }
+void printd(double f){ printf("%f\n", f); }
+#define print(toprint) _Generic((toprint), int: printi, char *: prints, char: printc, double: printd)(toprint)' > $tmpdir/printing.h
+base='#include "printing.h"
 /* more includes and defines */
 int main(int argc, char ** argv){
     /* do stuffs */
@@ -80,7 +89,7 @@ while true; do
         #   TODO then also do the thing i want with del where i can specify the number i wrote it as (this will be difficult too with multi line [number]s)
         ed) { ed $tmpdir/ic.c; false; };;
         e|edit) { ${EDITOR:-vim} $tmpdir/ic.c; false; };;
-        exit) exit;;
+        exit|quit) exit;;
     esac &&
         { [ -n "$(cat $tmpdir/ic.c)" ] &&
             cp $tmpdir/ic.c $tmpdir/ic-pre.c
