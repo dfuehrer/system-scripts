@@ -9,19 +9,23 @@ tmpdir=$(mktemp -d /tmp/ic.XXXXXXXXXX)
 # TODO make more of these functions to use for this
 echo '#include <stdio.h>
 void printi(int a){ printf("%d\n", a); }
-void prints(char * s){ puts(s); }
-void printc(char c){ printf("%d\n", c); }
+void printl(long a){ printf("%ld\n", a); }
+void printsize(size_t a){ printf("%zu\n", a); }
+void printc(char c){ printf("%c\n", c); }
 void printd(double f){ printf("%f\n", f); }
-#define print(toprint) _Generic((toprint), int: printi, char *: prints, char: printc, double: printd)(toprint)' > $tmpdir/printing.h
+#define print(toprint) _Generic((toprint), int: printi, long: printl, size_t: printsize, char *: puts, char: printc, double: printd)(toprint)' > $tmpdir/printing.h
 base='#include "printing.h"
-/* more includes and defines */
-int main(int argc, char ** argv){
-    /* do stuffs */
+/* ^^ more includes and defines ^^ */
+/* ^^ function definitions ^^ */
+int main(const int argc, const char * const argv[]){
+    /* ^^ do stuffs ^^ */
     return 0;
 }'
 echo "$base" > $tmpdir/ic.c
 # decide the run command based on if you have tcc
-which tcc > /dev/null 2>&1 && CC=tcc && run="tcc -run $tmpdir/ic.c" || { CC=cc; run="$CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic"; }
+which tcc > /dev/null 2>&1 && CC=tcc && run='$CC -run $tmpdir/ic.c' || { CC=cc; run='$CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic'; }
+export HISTFILE=$tmpdir/ic.history
+touch $HISTFILE
 num=0
 blocklevel=0
 # remove the tmp dir we made for this and kill anything thats running
@@ -34,6 +38,9 @@ cleanup () {
 term () {
     kill -s CHLD 0
     printf "\r"
+    # i dont know if this is necessarily what i want but reset the block level to exit the blockyness after pressing ^C
+    prev_blocklevel=0
+    blocklevel=0
 }
 # on exit we want to cleanup everything
 trap cleanup EXIT
@@ -46,7 +53,6 @@ while true; do
     #   obviously the problem with that is that i have to figure out a way of removing all print statements for just 1 run and i need to write a dynamic print function which is jsut a stupid pain that i really dont know how to do other than brute forcing base datatypes like int, str, etc
     #   couple ways to do that but i could print out some key thing so that before it it discards all output untill the indicator then it prints the next thing (could do that in awk or something else)
     #   if you really want a powerful interface for looking at values and stuff, gdb has this feature and it is awesome and i cant do anything about that
-    # TODO somehow implement a history
     # TODO maybe make it so that if i just write a variable that has been previously defined in my script it will print it out with some auto printing function that i figure out how to write
     #   im really running up against a limitation here of trying to have C used like an interpreted language where i can just have it run 1 line at a time when i give it
     #   casue itd really be nice to know what has been saved and then work off of that but that just isnt feasible
@@ -63,6 +69,7 @@ while true; do
     indents="$(printf '%*s' $(($blocklevel*4)) '')"
     read -re -p "$prompt" -i "$indents" input || exit
 
+    prev_blocklevel=$blocklevel
     blocklevel=$(( $blocklevel + $(echo "$input" | grep -o '{' | wc -l) - $(echo "$input" | grep -o '}' | wc -l) ))
     # if got input then increment, otherwise go to next iter
     [ -z "$input" ] && continue || { [ $blocklevel -eq 0 ] && num=$((num+1)); }
@@ -71,14 +78,25 @@ while true; do
     input="$(echo "$input" | sed 's/\\\([abcefnrtv0xuU]\)/\\\\\1/g')"
     #echo "$input"
     case "$input" in
+        # use the ! prefix to run shell commands
+        # maybe i should do a whoami to check that its not root when running arbitrary commands
+        # tho this literally lets you run whatever you want in c so you really have no limitations at that point
+        !*) { eval ${input#!}; false; };;
         gdb|debug) { cc -g $tmpdir/ic.c -o $tmpdir/ic && gdb $tmpdir/ic; false; };;
-        #run) { $CC $tmpdir/ic.c -o $tmpdir/ic && $tmpdir/ic; false; };;
-        run) { $run; false; };;
+        # TODO dont use eval here since im not sanitizing the library input
+        run) { eval $run; false; };;
+        lib*|library*) { CC="$CC -l${input#* }"; false; };;
+        # time tells it to compile and time the running of the program
+        time) { $CC $tmpdir/ic.c -o $tmpdir/ic && time $tmpdir/ic; false; };;
+        # this allows for somethign like time 100 to time 100 runs of the program at once quietly (since these probably run really fast)
+        time*) { $CC $tmpdir/ic.c -o $tmpdir/ic && time for i in $(seq ${input#* }); do $tmpdir/ic >> /dev/null; done; false; };;
         # r for color, X for not clearing screen, E for exiting at EOF
         show) { highlight -O truecolor -F user -lt 4 --style=code-dark $([ -n "$HIGHLIGHT_DATADIR" ] && echo -D "$HIGHLIGHT_DATADIR") $tmpdir/ic.c | less -rXE; false; };;
         #show) { bat -n --theme OneHalfDark --tabs 4 $tmpdir/ic.c; false; };;
         # yes this is stupid to run a highlighter and strip its colors and then highlight with bat
         #show) { highlight -O ansi -F user -t 4 $tmpdir/ic.c | ansifilter -T | bat --theme=code-dark -nl c; false; };;
+        # TODO dont use eval (even though i should be escaping it ok) (using eval for the globbing and expansion stuffs)
+        save) { read -e -p 'Where do you want it saved to? ' -i '~/' saveloc && eval cp -i $tmpdir/ic.c "${saveloc%%[;|&]*}"; false; };;
         clear) { echo "$base" > $tmpdir/ic.c && clear && num=0; false; };;
         help*|man*) { man ${input#* }; false; };;
         # TODO figure out how to do multi line deletion this way
@@ -93,9 +111,14 @@ while true; do
     esac &&
         { [ -n "$(cat $tmpdir/ic.c)" ] &&
             cp $tmpdir/ic.c $tmpdir/ic-pre.c
-            { [ '#' = $(echo "$input" | cut -c 1) ] && 
+            # if starts with #include or #define then put at beginning for includes and defines not perfect but pretty good
+            [ $prev_blocklevel -eq 0 ] && { [ "${input#\#include}" != "$input" ] || [ "${input#\#define}" != "$input" ] && 
                 comment='more includes and defines' || 
+                # function definition starts with a type then a space then a name of the function then a (
+                { echo "$input" | grep '[[:alnum:]_]\+[[:space:]][[:alnum:]_ ]\+(' -q && comment='function definitions'; } || 
                 { comment='do stuffs' && input="$(printf "\\\\\\t%s" "$input")"; }
-            } && 
-                sed '/\/\* '"$comment"' \*\//i '"$input"'' $tmpdir/ic-pre.c > $tmpdir/ic.c; }
+            } || [ $prev_blocklevel -gt 0 ] && 
+                sed '/\/\* \^\^ '"$comment"' \^\^ \*\//i '"$input"'' $tmpdir/ic-pre.c > $tmpdir/ic.c; }
+    history -s "$input"
+    history -a
 done
