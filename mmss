@@ -12,4 +12,4 @@ read x y << EOF
 $(xrandr | grep -o '[0-9]\+x[0-9]\++' | tr 'x+' ' ')
 EOF
 #while true; do [ $(xssstate -t) -lt 60000 ] && swarp $(shuf -i 1-$(echo $size | cut -d ' ' -f 1) -n 1) $(shuf -i 1-$(echo $size | cut -d ' ' -f 2) -n 1) && sleep  1 || sleep 1m; done
-while true; do [ $(xssstate -t) -lt 60000 ] && swarp $(shuf -i 1-$x -n 1) $(shuf -i 1-y -n 1) && sleep  1 || sleep 1m; done
+while true; do [ $(xssstate -t) -lt 60000 ] && swarp $(shuf -i 1-$x -n 1) $(shuf -i 1-$y -n 1) && sleep 1s || sleep 1m; done
