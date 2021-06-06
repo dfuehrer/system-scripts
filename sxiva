@@ -10,12 +10,16 @@
 eval $(echo 'flags: t,T,time; parameters: f,F,file=.' | clparser "$@")
 [ -z "$f" ] && { [ -z "$defaults" ] && f=. || f="$defaults"; }
 [ -d "$f" ] && { setsid -f sxiv $f; exit; }
-# TODO this assumes there are no spaces in the files wihich is bad
+# TODO this assumes there are no spaces in the files which is bad
 # TODO i hate using cat to do nothing cause its slow but i need to clean up for the other stuff so this is where im at
-[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='cut -d " " -f1'; } || { fstr='%f\n' && cleanup=cat; }
+#[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='cut -d " " -f1'; } || { fstr='%f\n' && cleanup=cat; }
+[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='cutfield 1'; } || { fstr='%f\n' && cleanup=cat; }
 dir=$(dirname "$f")
 base=$(basename "$f")
-files="$(find "$dir" -maxdepth 1 -type f -printf "$fstr" | sort $sortarg | eval $cleanup)"
+# pass into file to try to only get images so that it errors less trying to read random files
+files="$(find "$dir" -maxdepth 1 -type f -printf "$fstr" | sort $sortarg | $cleanup | xargs file -ZL | awk '/image/ { print substr($1, 0, length($1)-1) }')"
 num="$(echo "$files" | sed '\|^'"$base"'$|q' | wc -l)"
-[ -z "$t" ] && files="$dir"
-sxiv $files -n "$num" &
+# cant just use the dir cause hidden files screws with it
+#[ -z "$t" ] && files="$dir"
+# just grepping out this error cause i dont care, already tried to get rid of it as much as i could
+sxiv $files -n "$num" | grep -v 'Error opening image' &

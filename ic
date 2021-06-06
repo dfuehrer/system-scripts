@@ -84,6 +84,7 @@ while true; do
         !*) { eval ${input#!}; false; };;
         gdb|debug) { cc -g $tmpdir/ic.c -o $tmpdir/ic && gdb $tmpdir/ic; false; };;
         # TODO dont use eval here since im not sanitizing the library input
+        # TODO make it so that i can run it with clargs
         run) { eval $run; false; };;
         lib*|library*) { CC="$CC -l${input#* }"; false; };;
         # time tells it to compile and time the running of the program

@@ -82,6 +82,7 @@ case "$(file -Lb --mime-type -- "$file")" in
     application/postscript) ps2ascii "$file" && exit;;
     # this is kinda dumb but kinda funny, convert word docs to markdown to display with glow, kinda works (probably converting to pdf to get an image makes more sense but that would be super slow)
     application/vnd.openxmlformats-officedocument.wordprocessingml.document) pandoc -i "$file" -t markdown | glow -s dark - && exit;;
+    application/vnd.oasis.opendocument.text) odt2txt "$file" && exit;;
     # this kinda works but i can never get terminal eqn to work right for some reason
     text/troff) groffer --mode text "$file";;
     application/csv) bat -fn "$file" && exit;;
