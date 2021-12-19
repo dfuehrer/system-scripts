@@ -6,31 +6,35 @@
 #   NOTE this only makes sense if youre trying to combine the same file type, cant do c and python cause itll be confused
 
 # using my clparser to parse clargs, have options for lots of stuffs, some that dont exist (i still needa make hlep functionality for clparser where you can give it helps for the things and itll print them out (might just be easier to write one yourself but))
-eval $(echo 'flags: B,batch s,single,one-file no-line,n line,l i,interactive; parameters: O,format=docx o,out theme,style k,font;' | clparser "$@")
-# just copied these from the highlight --help, check to make sure the type asked for is something i know what to do
-highlightformats="html,xhtml,latex,tex,odt,rtf,ansi,xterm256,truecolor,bbcode,pango,svg"
-echo "$highlightformats,pdf,docx" | grep -Fv "$format" && { echo I don\'t know what to do with $format; exit; }
+spec='flags: B,batch s,single,one-file no-line,n line,l i,interactive h,help; parameters: O,format=docx o,out theme,style k,font;'
+eval $(echo "$spec" | clparser "$@")
+[ "$help" ] && echo "$spec" && exit
 # for these sections i could have a line to check for postformat and set format to odt just to reduce the redundant code
 # if pdf or docx then need to post process with libreoffice so use odt to import
 case "$format" in
     pdf) postformat=$format && format=odt;;
     docx) postformat=$format && format=odt;;
+    ms) postformat=$format && format=latex;;
 esac
+# just copied these from the highlight --help, check to make sure the type asked for is something i know what to do
+highlightformats="html,xhtml,latex,tex,odt,rtf,ansi,xterm256,truecolor,bbcode,pango,svg"
+echo "$highlightformats" | grep -Fv "$format" && { echo I don\'t know what to do with $format; exit; }
 # set var for using lined numbers or not
 [ $l ] || [ -z "$n" ] && l=-l
 # set var for the theme to use, TODO not working
 [ -n "$theme" ] && theme="--style=$theme"
 [ -n "$font" ] && font="--font=$font"
+[ -n "$HIGHLIGHT_DATADIR" ] && HIGHLIGHT_DATADIR="-D $HIGHLIGHT_DATADIR"
 # set var so i dont say file(s), its always right, (echo out what input files given)
 [ "$(echo "$defaults" | wc -w)" -gt 1 ] && filesplural=s
 # TODO prolly put this in a verbose thing
 echo using input file$filesplural: "$defaults"
 # TODO this logic has issues if you dont use file extensions
 # if no out gotta choose intelegently
-[ -z "$out" ] && { 
+[ -z "$out" ] && {
     # if combining in one file use garbage program i threw together too fast commonname to get common name
     # set onefilename based on it, newfile from that with format file extension
-    [ $one_file ] && onefilename="common_$(commonname $defaults)" && newfile="${onefilename%.*}.$format" || 
+    [ $one_file ] && onefilename="common_$(commonname $defaults)" && newfile="${onefilename%.*}.$format" ||
     # if not one-file then set new file from input with file extension from format
     newfile="${defaults%.*}.$format";  } || {
         # if have out, then set newfile to out, format should be there, if one-file set from out with file extensions from input files (NOTE goes wrong if they have no extension)
@@ -42,6 +46,46 @@ echo making temp file: $onefilename then outputing file: $newfile; } || onefilen
 # actually use highlight to highlight file, output in newfile; if fail, exit
 # the options are the given format (default set to docx in clparser -> odt in case), lines if requested (yes by default), input file, and output file
 # TODO get rid of the highlight_datadir, its only here cause its being dumb (its supposed to be reading this var automatically
-highlight -O "$format" $l $theme $font $([ -n "$HIGHLIGHT_DATADIR" ] && echo "-D $HIGHLIGHT_DATADIR") -t 4 -i "$onefilename" -o "$newfile" || { ret=$?; echo its gone terribly wrong > /dev/stderr; exit $ret; }
+highlight -O "$format" $l $theme $font $HIGHLIGHT_DATADIR -t 4 -i "$onefilename" -o "$newfile" || { ret=$?; echo its gone terribly wrong > /dev/stderr; exit $ret; }
 # if postformatting then convert with libreoffice, it saves the file automatically so guess what it should save
-[ -n "$postformat" ] && soffice --convert-to "$postformat" "$newfile" && echo "final file: ${newfile%.*}.$postformat (probably)"
+[ "$format" = 'odt' ] && soffice --convert-to "$postformat" "$newfile" && echo "final file: ${newfile%.*}.$postformat (probably)"
+# if postformatting is groff ms then convert with this sed script that will preserve the colors and also specify the UbuntuMono- font family (unfortunately very custom to my system but at least it will still generate even if it cant find the font)
+[ "$postformat" = 'ms' ] && {
+    # TODO figure out these colors and stuffs better so i dont have to leave all the redundant stuff in
+    echo '
+.defcolor darkred rgb #900000
+.defcolor darkorange rgb #C0800D
+.defcolor darkgreen rgb #00730D
+.defcolor darkgrey rgb #666666
+.defcolor darkcyan rgb #00808C
+.defcolor hllin rgb #666666
+.defcolor hlnum rgb #C0800D
+.defcolor hlopt rgb #900000
+.defcolor hlkwb rgb #00808C
+.QP
+.fam UbuntuMono-';
+    sed -n 's/\\hspace\*{[^}]*}\|\\\\$//g;
+            s/{\([][*-]\|->\)}/\1/g;
+            s/\$\([<>]\)\$/\1/g;
+            s/\\hl\(slc\|com\){\(\([^}]\|\\}\)*\)}/\\m[darkgreen]\\f[I]\2\\f[R]/g;
+            s/\\hlkwa{\(\([^}]\|\\}\)*\)}/\\m[purple]\\f[B]\1\\f[R]/g;
+            s/\\hlkwd{\(\([^}]\|\\}\)*\)}/\\m[purple]\1/g;
+            s/\\hlkwe{\(\([^}]\|\\}\)*\)}/\\m[blue]\1/g;
+            s/\\hlesc{\(\([^}]\|\\}\)*\)}/\\m[red]\1/g;
+            s/\\hlsng{\(\([^}]\|\\}\)*\)}/\\m[brown]\1/g;
+            s/\\hlpp[cs]{\(\([^}]\|\\}\)*\)}/\\m[brown]\1/g;
+            s/\\\(hl\(lin\|num\|pp[cs]\|esc\|opt\|kw[b-f]\)\){\(\([^}]\|\\}\)*\)}/\\m[\1]\3/g;
+            s/\\hldef{}//g;
+            s/\\hldef{\([^}]*\)}/\\m[default]\1/g;
+            s/\\textunderscore /_/g;
+            s/\\textasciicircum /^/g;
+            s/\\textbar /|/g;
+            s/\$\\backslash\$/\\\\/g;
+            s/\$\\sim\$/~/g;
+            s/\\\([{} #$%&]\)/\1/g;
+            /\\m\[.*\]\|\.br/p;
+            ' "$newfile" | sed 's/$/\n.br/';
+    echo '.gcolor default
+.fam
+.ft R';
+} > ${newfile%.*}.$postformat && echo "final file: ${newfile%.*}.$postformat (probably)"
