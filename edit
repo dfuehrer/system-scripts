@@ -3,7 +3,7 @@
 # this script will open a file correctly in a terminal text editor
 #   either from the terminal in the editor directly
 #   or from a launcher by running the editor in the terminal, waiting for the editor to open, and then giving the editor the WINCH signal to resize it so that its correct
-[ -z "$TERM" ] && { term="setsid -f ${TERMINAL:-st} -e"; } || { term=exec; }
+[ -z "$TERM" ] || [ "$TERM" = linux ] && { term="setsid -f ${TERMINAL:-st} -e"; } || { term=exec; }
 
 $term "$EDITOR" "$@"
 # dont love having to loop and search and stuff but this is a pretty ok way of doing it

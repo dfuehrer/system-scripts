@@ -1,7 +1,8 @@
 #!/bin/sh
 # TODO finch wont do anything without a terminal, add in option to make it a terminal app
-messagernesses='messages\nevolution\ndiscord\ncaprine\nsignal-desktop\nelement-desktop\npidgin\nfinch\ngroupme'
-mess="$(printf "$messagernesses" | dmenu -c -l 10)"
+#messagernesses='messages\nmailspring\ndiscord\ncaprine\nsignal-desktop\nelement-desktop\nevolution\npidgin\nfinch\ngroupme'
+messagernesses='messages\nmailspring\ndiscord\ncaprine\nsignal-desktop\nelement-desktop\nevolution\npidgin\nfinch\ngroupme\nmessenger'
+mess="$(printf "$messagernesses" | dmenu -c -l 10 | sort -u)"
 # gotta loop through the output so that i can open multiple
 for m in $mess; do
     which "$m" && setsid -f $m && continue

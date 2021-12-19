@@ -5,6 +5,6 @@ files=$(find $HOME/.local/bin/scripts | awk '{print $2}' | $selector)
 [ $? -eq 130 ] && exit 130 || [ -z "$files" ] && echo $files && files=$(echo $@ | sed 's|\(\w*\)|'"$HOME/.local/bin/scripts/"'\1|g')
 echo $files
 # NOTE i use -p here to open in many tabs but thats probably just a vim thing (works for me but would need to change if using another editor)
-eval "$term" ${EDITOR:-vim} -p $files
+eval "$term" ${EDITOR:-vim -p} $files
 # im not 100% that i want to chmod it after editing but..
 chmod u+x $files

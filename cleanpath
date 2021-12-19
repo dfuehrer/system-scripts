@@ -1,4 +1,5 @@
 #!/bin/sh
+# this is dumb, dont use this
 for f in $@; do
     cd $(dirname $f) && echo $(pwd)/$(basename $f)
 done

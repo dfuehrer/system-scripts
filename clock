@@ -1,6 +1,11 @@
 #!/bin/sh
 # exit if blockbutton exists and isnt the middle mouse (if it is then open this file in editor), if left click open xclock otherwise quit
-[ -n "$BLOCK_BUTTON" ] && { [ "$BLOCK_BUTTON" -eq 2 ] && { edit "$0"; exit; } || [ "$BLOCK_BUTTON" -eq 1 ] && { xclock; exit; } || exit; }
+case "$BLOCK_BUTTON" in
+    #1) xclock;;
+    2) edit "$0";;
+    '') false;;
+esac && exit
+
 clocks="🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛"
 hour=$(date "+%-I")
 echo -n $(echo "$clocks" | cut -c $(( ($hour-1)*4+1 ))-$(( $hour*4 )) ) $(date "+%b %d, %r")

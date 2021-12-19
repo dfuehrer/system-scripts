@@ -10,11 +10,19 @@ tmpdir=$(mktemp -d /tmp/ic.XXXXXXXXXX)
 echo '#include <stdio.h>
 void printi(int a){ printf("%d\n", a); }
 void printl(long a){ printf("%ld\n", a); }
+void printui(unsigned int a){ printf("%u\n", a); }
 void printsize(size_t a){ printf("%zu\n", a); }
 void printc(char c){ printf("%c\n", c); }
 void printd(double f){ printf("%f\n", f); }
-#define print(toprint) _Generic((toprint), int: printi, long: printl, size_t: printsize, char *: puts, char: printc, double: printd)(toprint)' > $tmpdir/printing.h
+void printp(const void * p){ printf("%p\n", p); }
+void printv(){ printf("void\n"); }
+//void printdef(char * data, size_t size){ printf("I don'"'"'t know what '%.*s' is", (int) size, data); }
+void printdef(){ puts("I don'"'"'t know what that is"); }
+#define printAddr(toprint) printp((void *) &toprint)
+//#define print(toprint) _Generic((toprint), int: printi(toprint), long: printl(toprint), size_t: printsize(toprint), char *: puts(toprint), char: printc(toprint), double: printd(toprint), void *: printp(toprint), default: (sizeof (toprint) == sizeof (void)) ? printv() : printdef())
+#define print(toprint) _Generic((toprint), int: printi, unsigned int: printui, long: printl, size_t: printsize, char *: puts, char: printc, double: printd, float: printd, void *: printp, default: (sizeof (toprint) == sizeof (void)) ? printv : printdef)(toprint)' > $tmpdir/printing.h
 base='#include "printing.h"
+#define ARRAY_LENGTH(array) ((sizeof array) / (sizeof array[0]))
 /* ^^ more includes and defines ^^ */
 /* ^^ function definitions ^^ */
 int main(const int argc, const char * const argv[]){
@@ -63,7 +71,7 @@ while true; do
     # TODO itd be super cool if we could get syntax highlighting in here but i bet thatd actually be impossible
     #   at least without actually writing this program from scratch
     #   which might be a better idea to actually write a c program to use readline and history and stuff to do all of this and then we could use a syntax highlighting library and stuff
-    # TODO make a way to be able to add functions
+    # TODO make this a plugin thing for vim so that I can have it in a botttom split and just do the commands there but easily jump up to the code to edit when necessary
     prompt="[$num]: "
     [ $blocklevel -gt 0 ] && prompt="$(printf '%*s' ${#prompt} '...: ')"
     indents="$(printf '%*s' $(($blocklevel*4)) '')"
@@ -103,7 +111,7 @@ while true; do
         # TODO figure out how to do multi line deletion this way
         # TODO make it so you can say del [number] and it will delete the num that is shown when you typed it
         #del*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(highlight  -O ansi -lt 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
-        del*|rm*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(bat --theme OneHalfDark -nf --tabs 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
+        del*|rm*) { [ "$input" = 'del' ] && input="$input "; cp $tmpdir/ic.c $tmpdir/ic-pre.c && delnum=$(bat --theme code-dark -nf --tabs 4 $tmpdir/ic-pre.c | fzf -1 --ansi --tiebreak=begin --query="${input#* }" | sed 's/\s*\([0-9]\+\).*/\1/') && [ $delnum ] && sed ${delnum}d $tmpdir/ic-pre.c > $tmpdir/ic.c; false; };;
         # TODO have an edit option that can take a line to edit and put it in my line so i can just edit it there
         #   TODO then also do the thing i want with del where i can specify the number i wrote it as (this will be difficult too with multi line [number]s)
         ed) { ed $tmpdir/ic.c; false; };;
