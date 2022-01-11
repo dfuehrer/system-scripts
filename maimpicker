@@ -27,7 +27,7 @@ n="$scrdir/$n"
         a=1     # always save if you used pick
     }
     # if w - choose window with xdotool like in maim example and be done, if S then fullscreen (defualt), if s then select
-    { [ $w ] && opts='-i $(xdotool getactivewindow)'; } || [ $S ] || { [ $s ] && opts='-ulsc 0.4,0.3,0.5,0.1 -n'; }
+    { [ $w ] && opts='-i $(xdotool getactivewindow)'; } || [ $S ] || { [ $s ] && opts='-ulsc 0.4,0.2,0.5,0.1 -n'; }
     # if a then save with tee (if saveonly this is kinda dumb but works fine so)
     [ $a ] || [ $save_only ] && opts="$opts | tee \"$n\""
 }
@@ -38,7 +38,7 @@ n="$scrdir/$n"
 # NOTE im having an issue with it not screenshotting but that issue comes down to sxhkd not always grabbing my alt+shift so it doesnt tell this to save so i have it notify me since i usually want to save
 eval maim $opts
 [ $a ] || [ $save_only ] && { [ 'image/png' = "$(xdg-mime query filetype "$n")" ] || { notify-send "$(basename $0)" "oof $(basename $n) didnt save you dont have that screenshot"; [ -s "$n" ] || rm "$n"; exit; }; } || notify-send "maimpicker" "hopefully you didnt want to save that cause i didn't"
-# TODO make e a parameter to give it the editor to use so i can use something more paint like drawing or pinta or any of the others 
+# TODO make e a parameter to give it the editor to use so i can use something more paint like drawing or pinta or any of the others
 # also maybe have it save $n and work in gimp as a copy or soemthing
 # NOTE this doesnt work if you save it as something different
 [ $e ] && ${IMAGE_EDITOR:-gimp -a} "$n" && xclip -selection clipboard -t image/png "$n"

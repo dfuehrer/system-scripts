@@ -3,7 +3,7 @@
 #{ for i in $(seq 10); do sleep .5s && pgrep -a "$(basename $0)" && [ $(pgrep -c "$(basename $0)") -gt 2 ] && echo what && kill $$; done; kill $$; } &
 
 draw() {
-    ~/.config/lf/scripts/draw-img.sh "$@";
+    ~/.config/lf/scripts/draw-img.sh "$@" &&
     exit 1;    # exit with error so that it can trigger something to clear after
 }
 
@@ -21,6 +21,15 @@ file="$1"
 shift
 
 case "$(file -Lb --mime-type -- "$file")" in
+    image/svg+xml)
+        if [ -n "$FIFO_UEBERZUG" ]; then
+            cache="$(mkhash "$file").png"
+            cache "$cache" "$@"
+            #svgtopam "$file" > "$cache"
+            rsvg-convert "$file" > "$cache"
+            draw "$cache" "$@"
+        fi
+        ;;
     image/*)
         if [ -n "$FIFO_UEBERZUG" ]; then
             orientation="$(identify -format '%[EXIF:Orientation]\n' -- "$file")"
