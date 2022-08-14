@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+# nothing or non-file: ls
+# files or -: cat/less
+#pager='less -FRx4'
+pager='bat'
+#pager='previewer'
+#previewer () {
+#    lf-previewer "$1" $COLUMNS $ROWS
+#}
+#lister='ls --color=auto'
+lister='exa'
+com="$pager"
+[ -z "$1" ] && com="$lister" || for f in "$@"; do [ -f "$f" ] || [ "$f" = - ] || { com="$lister" && break; }; done
+
+$com "$@"

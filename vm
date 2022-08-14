@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# just start the libvirtd service and socket before starting my vm cause i dont need them running all the time but might forget to start them first
+# this script just makes it quick to get started
+# TODO only start them if they are not already running
+systemctl start libvirtd.service libvirtd.socket
+virt-manager
