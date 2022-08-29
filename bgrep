@@ -2,4 +2,4 @@
 # TODO this could just be an alias
 # TODO maybe use find instead of ls
 #   TODO only show executables
-ls --color=always $(readlink -e $(printenv PATH | tr ':' '\n') | sort -u) | grep --color=auto $@
+ls --color=always $(readlink -e $(printenv PATH | tr ':' '\n') | sort -u) | grep --color=auto "$@"

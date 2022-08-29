@@ -50,6 +50,7 @@ highlight -O "$format" $l $theme $font $HIGHLIGHT_DATADIR -t 4 -i "$onefilename"
 # if postformatting then convert with libreoffice, it saves the file automatically so guess what it should save
 [ "$format" = 'odt' ] && soffice --convert-to "$postformat" "$newfile" && echo "final file: ${newfile%.*}.$postformat (probably)"
 # if postformatting is groff ms then convert with this sed script that will preserve the colors and also specify the UbuntuMono- font family (unfortunately very custom to my system but at least it will still generate even if it cant find the font)
+#   TODO get a script to make the fonts that groff uses
 [ "$postformat" = 'ms' ] && {
     # TODO figure out these colors and stuffs better so i dont have to leave all the redundant stuff in
     echo '

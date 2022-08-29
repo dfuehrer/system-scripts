@@ -12,7 +12,7 @@ eval $(echo 'flags: t,T,time; parameters: f,F,file=.' | clparser "$@")
 [ -d "$f" ] && { setsid -f sxiv $f; exit; }
 # TODO this assumes there are no spaces in the files which is bad
 # TODO i hate using cat to do nothing cause its slow but i need to clean up for the other stuff so this is where im at
-#[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='cutfield 1'; } || { fstr='%f\n' && cleanup=cat; }
+#[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='choose 1'; } || { fstr='%f\n' && cleanup=cat; }
 [ -n "$t" ] && { fstr='%T@ %f\n' && sortarg='-nk1' && cleanup="sed s/^[^[:space:]]*\s\(.*\)$/\1/"; } || { fstr='%f\n' && cleanup=cat; }
 dir=$(dirname "$f")
 base=$(basename "$f")

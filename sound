@@ -48,5 +48,6 @@ $notify || { ps -o comm -q "$(ps -o ppid -q "${sleep_pids%% }"  2> /dev/null | t
 
 # 19144 is arbitrary (s=19 n=14 d=4)
 # only notify if given arg
-$notify && dunstify "$(echo "$e$(percentbar 15 $sp)" )" -r 19144 -u LOW -t 1250
+#$notify && dunstify "$(echo "$e$(percentbar 15 $sp)" )" -r 19144 -u LOW -t 1250
+$notify && dunstify -h "int:value:$sp" "$e$(percentbar 15 $sp)" -r 19144 -u LOW -t 1250
 $notify && sleep "$sleep_amount" && pkill -SIGRTMIN+17 dwmblocks &
