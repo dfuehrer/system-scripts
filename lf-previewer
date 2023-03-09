@@ -63,7 +63,8 @@ case "$(file -Lb --mime-type -- "$file")" in
             pdftoppm -singlefile "$file" > "$cache"
             draw "$cache" "$@"
         else
-            pdftotext "$file" - && exit
+            #pdftotext "$file" - && exit
+            pdf2ps "$file" - | ps2ascii && exit
         fi
         ;;
     application/json) aeson-pretty < "$file" && exit;;
@@ -95,7 +96,9 @@ case "$(file -Lb --mime-type -- "$file")" in
     application/vnd.oasis.opendocument.text) odt2txt "$file" && exit;;
     # this kinda works but i can never get terminal eqn to work right for some reason
     text/troff) groffer --mode text "$file";;
-    application/csv) bat -fn "$file" && exit;;
+    #*/csv) pandoc -i "$file" -t markdown && exit;;
+    #*/csv) pandoc -i "$file" -t gfm | glow - -s dark -w "$1" && exit;;
+    */csv) pandoc -i "$file" -t gfm | glow - -s dark && exit;;
     text/*)
         case "$file" in
             *.md) glow -s dark "$file" && exit;;

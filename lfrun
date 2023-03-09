@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-if [ -n "$DISPLAY" ]; then
+if [ -n "$DISPLAY" ] && ! ps o command= $(ps o ppid= $(pgrep -s $(ps o session= $$))) | grep -q '\--embed'; then
     export FIFO_UEBERZUG="$(mktemp -ut lf-ueberzug.XXXXXXXXXX)"
     mkfifo "$FIFO_UEBERZUG"
 

@@ -1,11 +1,11 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # print out the no bell symbol if paused and if not print the bell and num notifications of > 0, otherwise dont print
 # this script is dunst only in case that isnt clear
 printstuffs () {
-    [ "$(dunstctl is-paused)" = 'true' ] && printf "%s" '🔕' || {
-        num="$(dunstctl count | awk '/Waiting/ { print $2; exit }')"
-        [ "$num" -gt 0 ] && printf "%s %d" '🔔' "$num"
-    };
+    #notif_sym='🔔'
+    [ "$(dunstctl is-paused)" = 'true' ] && notif_sym='🔕'
+    num_waiting="$(dunstctl count | awk '/Waiting/ { print $2; exit }')"
+    [ "$num_waiting" -gt 0 ] && printf '%s %d' "$notif_sym" "$num_waiting" || printf '%s' "$notif_sym"
 }
 case "$BLOCK_BUTTON" in
     2) edit "$0" ;;

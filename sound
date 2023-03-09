@@ -13,16 +13,16 @@ case "$BLOCK_BUTTON" in
 esac
 
 # check for pulseaudio, use ALSA if its not running
-[ -z "$(pgrep pulseaudio)" ] && {
+[ -z "$(pgrep pulseaudio\|pipewire-pulse)" ] && {
     case "$todo" in
-        "--inc")    amixer sset Master ${amount:-5}+;;
-        "--dec")    amixer sset Master ${amount:-5}-;;
-        "--set")    amixer sset Master "$amount";;
+        "--inc")    amixer sset Master ${amount:-5}%+;;
+        "--dec")    amixer sset Master ${amount:-5}%-;;
+        "--set")    amixer sset Master "$amount"%;;
         "--toggle") amixer sset Master toggle;;
     esac
     # TODO figure out how to get this info more directly
     pb="$(amixer sget Master | grep Playback)"
-    sp="$(echo "$pb" | tr ' ' '\n' | grep % | tr -d '[%]')"
+    sp="$(echo "$pb" | sed -n 's/.*Playback.*\[\([[:digit:]]\+\)%\].*/\1/p' | head -n1)"
     echo "$pb" | grep -q '\[off\]' && e=🔇 || { [ $sp -gt 66 ] && e=🔊 || { [ $sp -ge 33 ] && e=🔉 || e=🔈; }; };
 } || {
     case "$todo" in

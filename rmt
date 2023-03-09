@@ -3,13 +3,20 @@ trashdir=${XDG_DATA_HOME:-$HOME/.local/share}/Trash/rmt
 arcname=$(pwd)
 #opts=''
 echo $@
-for f in "$@"; do [ -e "$f" ] && { [ ${#arcname} -le 100 ] && arcname="$arcname"-$(basename "$f"); files="$files $f"; } || opts="$opts $f"; done
-echo $files
+for f in "$@"; do
+    if [ -e "$f" ]; then
+        [ ${#arcname} -le 100 ] && arcname="$arcname"-$(basename "$f")
+        #files="$files $f"
+    else
+        opts="$opts $f"
+    fi
+done
 arcname=$(date +"%Y%m%d%H%M%S")_"$(echo "$arcname" | sed 's|/|%|g')"
 
-cleanf=$(readlink -f $files | sed "s|$(pwd)/||g")
-echo $cleanf
-echo $opts
+#cleanf=$(readlink -f $files | sed "s|$(pwd)/||g")
+#echo $cleanf
+#echo $opts
+echo "$@"
 echo $arcname
 # im commenting this out cause i dont think i need this and i use 
 #echo "$cleanf"
@@ -22,9 +29,9 @@ echo $arcname
 #   im not sure if i tried 7za originally
 #   also zip is good enough probably since i think i remember it being pretty fast and fairly ok compression and normal trashes arent even compressed anyways
 #   also look into multithreaded compression like with xz cuase that could be a lot faster depending on whats going on if i give it like 8 cores
-#   look into using lbzip2
+#   try zlib
 
 # TODO only remove recursively if necessary, the user should know to do that
 #tar -jcf "$trashdir/${arcname}.tar.bzip2" $cleanf && rm -vI $opts $cleanf
-tar -I lbzip2 -cf "$trashdir/${arcname}.tar.bzip2" $cleanf && rm -vI $opts $cleanf
+tar -I lbzip2 -cf "$trashdir/${arcname}.tar.bz2" "$@" && rm -vI "$@"
 #zip -q "$trashdir/$arcname" $cleanf && rm -vIR $opts $cleanf
