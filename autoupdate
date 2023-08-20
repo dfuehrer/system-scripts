@@ -4,21 +4,37 @@
 # can specify the file or have it look in XDG_CONFIG_HOME
 # this is intended for things you just start and have 1 instance of running in the background like a keyboard shortcut manager
 #   becuase of this it will try to kill previous instances of this so this isnt a good way to autoupdate something youd have multiple instances running at once
-eval $(echo 'flags: r,restart; parameters: c,command f,file s,sig;' | clparser "$@")
-[ -z "$command" ] && { [ -z "$defaults" ] && { echo Must give a command > /dev/stderr; exit 1; } || command="$defaults"; }
-basecomm="${command%% *}"
-[ -z "$file" ] && { file="$(ls ${XDG_CONFIG_HOME:-$HOME/.config}/$basecomm 2> /dev/null)"; [ -z "$file" ] && { echo Must give a file > /dev/stderr; exit 1; } || file="${XDG_CONFIG_HOME:-$HOME/.config}/$basecomm/$file"; }
+eval "$(echo 'flags: r,restart h,help; parameters: f,file s,sig;' | clparser -- "$@")" || exit
+if [ -z "$*" ]; then
+    echo Must give a command >&2
+    exit 1
+fi
+basecomm="$1"
+if [ -z "$file" ]; then
+    file="$(find ${XDG_CONFIG_HOME:-$HOME/.config}/$basecomm -mindepth 1 -type f 2> /dev/null)"
+    if [ -z "$file" ]; then
+        echo Must give a file >&2
+        exit 1
+    elif [ "$(printf '%s\n' "$file" | wc -l)" -gt 1 ]; then
+        echo Found multiple files in ${XDG_CONFIG_HOME:-$HOME/.config}/$basecomm: $file >&2
+        exit 1
+    fi
+fi
 cleanup () { kill 0; }
 trap cleanup EXIT
 # id actually like to do this with pkill but i dont know how to do that without killing this process
 #echo $$
-#pgrep -f "autoupdate $command" | grep -v $$
-kill $(pgrep -f "autoupdate $command" | grep -v $$)
+restart_process="$(which restartprocess.sh)"
+pids2kill="$(pgrep -f "$0 $restart_process $*" | grep -v $$)"
+if [ -n "$pids2kill" ]; then
+    echo pids: "$pids2kill"
+    kill $pids2kill
+fi
 # I dont know why this would be necessary but this doesnt seem to die when i kill the autoupdates so
-#pkill -f "entr $HOME/.local/bin/scripts/restartprocess.sh $command"
+#pkill -f "entr $HOME/.local/bin/scripts/restartprocess.sh $*"
 [ -n "$s" ] && sigoption="-s $s"
-[ $r ] && restart='-r' || restart=
+$r && restart='-r' || restart=
 #eval "$command" &
 #restartprocess.sh "$command"
 # TODO this isnt starting things up or something
-echo "$file" | entr $restart "$HOME/.local/bin/scripts/restartprocess.sh" "$command" $sigoption
+echo "$file" | entr $restart "$restart_process" "$@" $sigoption

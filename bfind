@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
 # this doesnt have a huge reason to exist but it is prolly faster than bgrep and does filter on executables
 pat="$1" && shift
-find $(printenv PATH | tr ':' ' ') -maxdepth 1 -type f -executable -iregex ".*/[^/]*$pat[^/]*" "$@" 2> /dev/null
+# TODO update the grep pat to work for matching everyting
+# TODO update find regex to match filename
+find $(printenv PATH | tr ':' ' ') -regextype posix-basic -maxdepth 1 -type f -executable -iregex ".*/[^/]*$pat[^/]*" "$@" 2> /dev/null | grep "$pat" --color=auto

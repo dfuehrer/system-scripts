@@ -8,7 +8,7 @@
 - some depend on my configs
     - specifically I'm on Arch, so there may be differences with your system
     - I use dwm with a fork of dwm blocks (specifically mine that I forked from Luke's thats forked from someone else's) that lets you use the mouse with the bar, so BLOCK_BUTTON refers to that
-- many depend on C programs I wrote for things (mostly [clparser](https://github.com/dfuehrer/clparser) but also [visualbox](chrome://crash) and [percentbar](chrome://kill) and [cpupercent](chrome://hang))
+- many depend on C programs I wrote for things (mostly [clparser](https://github.com/dfuehrer/clparser) but also [visualbox](https://github.com/dfuehrer/visualbox) and [percentbar](https://github.com/dfuehrer/percentbar) and [cpupercent](https://github.com/dfuehrer/cpupercent))
 - I think I might skip a bunch specifically in my lf-previewer since it has a bunch of things for visualizing stuff that I don't care about
 - real dependencies (I might be forgetting many) in various scripts:
     - normal unix utilities not listed here

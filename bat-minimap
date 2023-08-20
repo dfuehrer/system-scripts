@@ -16,5 +16,5 @@ bn="${file##*/}"
 tmpfile="$(mktemp -tu bat-minimap.XXXXXXXXXX.${bn##*.})"
 # use that name to make a fifo file (store in ram, its pretty legit)
 mkfifo "$tmpfile"
-bat --style numbers,changes --paging=never -fr ":$height" "$@" "$file" | visualbox "$width" "$height" > "$tmpfile" &
+bat --style numbers,changes --paging=never -fr ":$height" "$@" "$file" | visualbox -w "$width" -h "$height" > "$tmpfile" &
 code-minimap "$file" --horizontal-scale .5 | paste -d' ' "$tmpfile" -

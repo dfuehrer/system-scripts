@@ -1,8 +1,9 @@
 #!/bin/sh
-# exit if blockbutton exists and isnt the middle mouse (if it is then open this file in editor), if left click open xclock otherwise quit
+# exit if blockbutton exists (after running command)
 case "$BLOCK_BUTTON" in
-    #1) xclock;;
-    2) edit "$0";;
+    #1) exec xclock;;
+    2) exec edit "$0";;
+    3) exec ${TERMINAL:-st} -e sh -c 'cal; read -p "Press [Enter] to exit.." in';;
     '') false;;
 esac && exit
 

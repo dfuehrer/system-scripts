@@ -1,6 +1,6 @@
 #!/bin/sh
-eval $(echo 'flags: h; parameters: l,len=15 n,num;' | clparser "$@")
-[ -z "$num" ] && { [ -z "$defaults" ] && exit 1 || num="$defaults"; }
+eval $(echo 'parameters: l,len=15 n,num;' | clparser -- "$@")
+[ -z "$num" ] && { [ -z "$1" ] && exit 1 || num="$1"; }
 bn=$(( $num*$len/100 ))
 # TODO this still isnt actually dynamic so the bars can only be 100 long like this
 full='===================================================================================================='

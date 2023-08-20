@@ -7,8 +7,8 @@
 
 # using my clparser to parse clargs, have options for lots of stuffs, some that dont exist (i still needa make hlep functionality for clparser where you can give it helps for the things and itll print them out (might just be easier to write one yourself but))
 spec='flags: B,batch s,single,one-file no-line,n line,l i,interactive h,help; parameters: O,format=docx o,out theme,style k,font;'
-eval $(echo "$spec" | clparser "$@")
-[ "$help" ] && echo "$spec" && exit
+eval "$(echo "$spec" | clparser -- "$@")" || exit
+"$help" && exit
 # for these sections i could have a line to check for postformat and set format to odt just to reduce the redundant code
 # if pdf or docx then need to post process with libreoffice so use odt to import
 case "$format" in
@@ -18,35 +18,71 @@ case "$format" in
 esac
 # just copied these from the highlight --help, check to make sure the type asked for is something i know what to do
 highlightformats="html,xhtml,latex,tex,odt,rtf,ansi,xterm256,truecolor,bbcode,pango,svg"
-echo "$highlightformats" | grep -Fv "$format" && { echo I don\'t know what to do with $format; exit; }
+if echo "$highlightformats" | grep -Fv "$format"; then
+    echo I don\'t know what to do with $format
+    exit
+fi
 # set var for using lined numbers or not
-[ $l ] || [ -z "$n" ] && l=-l
+if $l || ! "$n"; then l=-l; fi
 # set var for the theme to use, TODO not working
 [ -n "$theme" ] && theme="--style=$theme"
 [ -n "$font" ] && font="--font=$font"
 [ -n "$HIGHLIGHT_DATADIR" ] && HIGHLIGHT_DATADIR="-D $HIGHLIGHT_DATADIR"
 # set var so i dont say file(s), its always right, (echo out what input files given)
-[ "$(echo "$defaults" | wc -w)" -gt 1 ] && filesplural=s
+[ "$#" -gt 1 ] && filesplural=s
 # TODO prolly put this in a verbose thing
-echo using input file$filesplural: "$defaults"
+echo using input file$filesplural: "$@"
 # TODO this logic has issues if you dont use file extensions
-# if no out gotta choose intelegently
-[ -z "$out" ] && {
+# if no out gotta choose intelligently
+if [ -z "$out" ]; then
     # if combining in one file use garbage program i threw together too fast commonname to get common name
     # set onefilename based on it, newfile from that with format file extension
-    [ $one_file ] && onefilename="common_$(commonname $defaults)" && newfile="${onefilename%.*}.$format" ||
-    # if not one-file then set new file from input with file extension from format
-    newfile="${defaults%.*}.$format";  } || {
-        # if have out, then set newfile to out, format should be there, if one-file set from out with file extensions from input files (NOTE goes wrong if they have no extension)
-    newfile="${out%.*}.$format"; [ $one_file ] && onefilename="${out%.*}.${defaults##*.}"; }
+    if $one_file; then
+        onefilename="common_$(commonname "$@")"
+        newfile="${onefilename%.*}.$format"
+    else
+        # if not one-file then set new file from input with file extension from format
+        # TODO what if there are multiple files?
+        newfile="${1%.*}.$format";
+    fi
+else
+    # if have out, then set newfile to out, format should be there, if one-file set from out with file extensions from input files (NOTE goes wrong if they have no extension)
+    newfile="${out%.*}.$format"
+    if $one_file; then
+        onefilename="${out%.*}.${1##*.}"
+    fi
+fi
+# TODO maybe have the ability to combine the output files
 # if one-file then cat the files together with 4 lines between them in onefilename, otherwise set onefilename to input
-[ $one_file ] && { echo > "$onefilename" && for f in $defaults; do cat $f >> "$onefilename" && printf '\n\n\n\n' >> "$onefilename"; done; 
-# explain the temp file and output file from highlight
-echo making temp file: $onefilename then outputing file: $newfile; } || onefilename="$defaults"
+if $one_file; then
+    #truncate -s 0 "$onefilename"
+    #for f in "$@"; do
+    #    cat $f >> "$onefilename" && printf '\n\n\n\n' >> "$onefilename"
+    #done
+    # TODO prepend the file with the filename in a comment
+    # - prolly use file to figure out the filetype and use it to look up the comment str (default to #)
+    awk '
+    FNR == 1 {
+        if ( NR != 1 ) {
+            print ORS ORS ORS ORS
+        }
+    }
+    {
+        print
+    }' "$@"
+    # explain the temp file and output file from highlight
+    echo making temp file: $onefilename then outputing file: $newfile
+else
+    onefilename="$*"
+fi
 # actually use highlight to highlight file, output in newfile; if fail, exit
 # the options are the given format (default set to docx in clparser -> odt in case), lines if requested (yes by default), input file, and output file
 # TODO get rid of the highlight_datadir, its only here cause its being dumb (its supposed to be reading this var automatically
-highlight -O "$format" $l $theme $font $HIGHLIGHT_DATADIR -t 4 -i "$onefilename" -o "$newfile" || { ret=$?; echo its gone terribly wrong > /dev/stderr; exit $ret; }
+highlight -O "$format" $l $theme $font $HIGHLIGHT_DATADIR -t 4 -i "$onefilename" -o "$newfile" || {
+    ret=$?
+    echo its gone terribly wrong >&2
+    exit $ret
+}
 # if postformatting then convert with libreoffice, it saves the file automatically so guess what it should save
 [ "$format" = 'odt' ] && soffice --convert-to "$postformat" "$newfile" && echo "final file: ${newfile%.*}.$postformat (probably)"
 # if postformatting is groff ms then convert with this sed script that will preserve the colors and also specify the UbuntuMono- font family (unfortunately very custom to my system but at least it will still generate even if it cant find the font)

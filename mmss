@@ -2,9 +2,15 @@
 # this script just loops, checks if its within a minute till the screensaver turns on, and if it is it moves the mouse to a random location
 # TODO just make a script that tells the screensaver to not turn off for a period and then turn it back after the times up, thatd be simpler and smarter
 # this is dumb, for 1 option itd be better to just get the flag from the basic shell way
-eval $(echo 'flags: c,choose; parameters: choose,c;' | clparser "$@")
+eval $(echo 'flags: c,choose; parameters: choose,c;' | clparser -- "$@")
 # NOTE for the record i think kill $$ is super disgusting but it works and i dont want to do something more complicated
-[ "$c" = 1 ] && tl="$(printf '30m\n1h\n1.5h' | dmenu)" || { [ -n "$c" ] && tl="$c"; }
+echo $c
+if [ "$c" = true ]; then
+    tl="$(printf '30m\n1h\n1.5h' | dmenu)"
+elif [ "$c" != "false" ]; then
+    tl="$c"
+fi
+echo $tl
 [ -n "$tl" ] && echo $tl && sleep "$tl" && kill $$ &
 
 #size=$(xrandr | grep -o '[0-9]\+x[0-9]\++' | tr 'x+' ' ')

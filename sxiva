@@ -7,13 +7,13 @@
 
 
 # TODO make it so i can pass flags to sxiv (prolly should add that feature into clparser)
-eval $(echo 'flags: t,T,time; parameters: f,F,file=.' | clparser "$@")
-[ -z "$f" ] && { [ -z "$defaults" ] && f=. || f="$defaults"; }
+eval $(echo 'flags: t,T,time h,help; parameters: f,F,file=.' | clparser -- "$@")
+[ -z "$f" ] && { [ -z "$1" ] && f=. || f="$1"; }
 [ -d "$f" ] && { setsid -f sxiv $f; exit; }
 # TODO this assumes there are no spaces in the files which is bad
 # TODO i hate using cat to do nothing cause its slow but i need to clean up for the other stuff so this is where im at
 #[ -n "$t" ] && { fstr='%f %T@\n' && sortarg='-nk2' && cleanup='choose 1'; } || { fstr='%f\n' && cleanup=cat; }
-[ -n "$t" ] && { fstr='%T@ %f\n' && sortarg='-nk1' && cleanup="sed s/^[^[:space:]]*\s\(.*\)$/\1/"; } || { fstr='%f\n' && cleanup=cat; }
+"$time" && { fstr='%T@ %f\n' && sortarg='-nk1' && cleanup="sed s/^[^[:space:]]*\s\(.*\)$/\1/"; } || { fstr='%f\n' && cleanup=cat; }
 dir=$(dirname "$f")
 base=$(basename "$f")
 # pass into file to try to only get images so that it errors less trying to read random files
@@ -23,6 +23,6 @@ num="$(echo "$files" | sed '\|^'"$base"'$|q' | wc -l)"
 echo "$files"
 echo "$num"
 # cant just use the dir cause hidden files screws with it
-#[ -z "$t" ] && files="$dir"
+#! "$time" && files="$dir"
 # just grepping out this error cause i dont care, already tried to get rid of it as much as i could
 echo "$files" | xargs -d '\n' sxiv -n "$num" 2>&1 | grep -v 'Error opening image' &
