@@ -4,7 +4,14 @@
 # can specify the file or have it look in XDG_CONFIG_HOME
 # this is intended for things you just start and have 1 instance of running in the background like a keyboard shortcut manager
 #   becuase of this it will try to kill previous instances of this so this isnt a good way to autoupdate something youd have multiple instances running at once
-eval "$(echo 'flags: r,restart h,help; parameters: f,file s,sig;' | clparser -- "$@")" || exit
+spec='flags: r,restart i,interactive h,help; parameters: f,file s,sig;'
+helpmsg="
+restart     = use entr -r flag for reload, see entr(1)
+interactive = use entr in its interactive mode - don't do this if not running in terminal, it doesn't work
+file        = path to file to watch to restart proc (default to try to find in $XDG_CONFIG_HOME)
+sig         = send sig kill signal to process instead of restarting it
+"
+eval "$(echo "$spec" | clparser -H "$helpmsg" -e -- "$@")" || exit
 if [ -z "$*" ]; then
     echo Must give a command >&2
     exit 1
@@ -24,17 +31,18 @@ cleanup () { kill 0; }
 trap cleanup EXIT
 # id actually like to do this with pkill but i dont know how to do that without killing this process
 #echo $$
-restart_process="$(which restartprocess.sh)"
-pids2kill="$(pgrep -f "$0 $restart_process $*" | grep -v $$)"
+pids2kill="$(pgrep -f "$0 $*" | grep -v $$)"
 if [ -n "$pids2kill" ]; then
-    echo pids: "$pids2kill"
+    echo autoupdate processes to kill: "$pids2kill"
     kill $pids2kill
 fi
 # I dont know why this would be necessary but this doesnt seem to die when i kill the autoupdates so
 #pkill -f "entr $HOME/.local/bin/scripts/restartprocess.sh $*"
 [ -n "$s" ] && sigoption="-s $s"
 $r && restart='-r' || restart=
+# NOTE probably dont use the --interactive flag
+$i && non_interactive= || non_interactive='-n'
+restart_process="$(which restartprocess.sh)"
 #eval "$command" &
-#restartprocess.sh "$command"
-# TODO this isnt starting things up or something
-echo "$file" | entr $restart "$restart_process" "$@" $sigoption
+#"$restart_process" "$command"
+echo "$file" | entr $non_interactive $restart "$restart_process" "$@" $sigoption

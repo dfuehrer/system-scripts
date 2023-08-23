@@ -23,7 +23,7 @@ esac
     # TODO figure out how to get this info more directly
     pb="$(amixer sget Master | grep Playback)"
     sp="$(echo "$pb" | sed -n 's/.*Playback.*\[\([[:digit:]]\+\)%\].*/\1/p' | head -n1)"
-    echo "$pb" | grep -q '\[off\]' && e=🔇 || { [ $sp -gt 66 ] && e=🔊 || { [ $sp -ge 33 ] && e=🔉 || e=🔈; }; };
+    echo "$pb" | grep -q '\[off\]' && e=🔇 || { [ "$sp" -gt 66 ] && e=🔊 || { [ "$sp" -ge 33 ] && e=🔉 || e=🔈; }; };
 } || {
     case "$todo" in
         "--inc")    pamixer -i ${amount:-5};;
